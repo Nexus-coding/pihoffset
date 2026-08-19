@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIINAS — Modul Offset Karbon Industri | Admin PIH Kemenperin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --pine:#12382e; --pine-2:#1a4d3f; --pine-3:#0d2a22;
+  --paper:#f2f4f1; --card:#ffffff; --line:#dbe2dc; --line-2:#e8ede9;
+  --ink:#1b241f; --ink-2:#51605a; --ink-3:#7c8a84;
+  --gold:#a16207; --gold-bg:#fdf6e3;
+  --red:#b42318; --red-bg:#fdf0ee;
+  --green:#137a4f; --green-bg:#e9f6ef;
+  --ippu:#5b4bc4; --ippu-bg:#efedfb;
+  --energi:#c26a04; --energi-bg:#fbf1e3;
+  --limbah:#0e7490; --limbah-bg:#e6f4f8;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --sans:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--paper);color:var(--ink);font-size:14px;line-height:1.55}
+button{font-family:var(--sans);cursor:pointer}
+input,textarea,select{font-family:var(--sans);font-size:13.5px}
+/* ===== layout ===== */
+.app{display:flex;min-height:100vh}
+.side{width:248px;background:var(--pine);color:#e8f0ec;flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.side .brand{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,.12)}
+.brand .logo-row{display:flex;gap:10px;align-items:center}
+.brand .mark{width:38px;height:38px;flex-shrink:0}
+.brand h1{font-size:17px;font-weight:800;letter-spacing:.04em}
+.brand .sub{font-size:10.5px;color:#a9c4b8;margin-top:6px;line-height:1.45;text-transform:uppercase;letter-spacing:.06em}
+.nav{padding:12px 10px;flex:1}
+.nav .nlabel{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#7fa393;padding:10px 10px 6px}
+.nav button{display:flex;width:100%;gap:10px;align-items:center;background:none;border:none;color:#cfe0d7;padding:9px 10px;border-radius:8px;font-size:13.5px;font-weight:600;text-align:left;margin-bottom:2px}
+.nav button:hover{background:rgba(255,255,255,.07)}
+.nav button.on{background:var(--pine-2);color:#fff}
+.nav button .badge{margin-left:auto;background:var(--gold);color:#fff;font-family:var(--mono);font-size:11px;border-radius:99px;padding:1px 7px}
+.side .foot{padding:14px 18px;border-top:1px solid rgba(255,255,255,.12);font-size:11px;color:#8fae9f;line-height:1.5}
+.main{flex:1;min-width:0}
+.topbar{background:var(--card);border-bottom:1px solid var(--line);padding:14px 26px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:40}
+.topbar h2{font-size:17px;font-weight:800}
+.topbar .crumb{font-size:12px;color:var(--ink-3)}
+.topbar .who{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12.5px}
+.who .avatar{width:32px;height:32px;border-radius:50%;background:var(--pine-2);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+.who .rname{font-weight:700}.who .rrole{color:var(--ink-3);font-size:11px}
+.content{padding:24px 26px 60px;max-width:1240px}
+/* ===== generic ===== */
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px}
+.pad{padding:18px 20px}
+h3.sec{font-size:15px;font-weight:800;margin-bottom:4px}
+p.hint{font-size:12.5px;color:var(--ink-2);margin-bottom:14px}
+.mono{font-family:var(--mono)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;border-radius:6px;padding:2px 8px;white-space:nowrap}
+.tag.ippu{background:var(--ippu-bg);color:var(--ippu)}
+.tag.energi{background:var(--energi-bg);color:var(--energi)}
+.tag.limbah{background:var(--limbah-bg);color:var(--limbah)}
+.tag.gold{background:var(--gold-bg);color:var(--gold)}
+.tag.red{background:var(--red-bg);color:var(--red)}
+.tag.green{background:var(--green-bg);color:var(--green)}
+.tag.gray{background:#eef1ef;color:var(--ink-2)}
+.tag.oto{background:#102a43;color:#cfe3f5}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--ink)}
+.btn:hover{border-color:var(--ink-3)}
+.btn.pri{background:var(--pine-2);border-color:var(--pine-2);color:#fff}
+.btn.pri:hover{background:var(--pine)}
+.btn.warn{background:var(--gold);border-color:var(--gold);color:#fff}
+.btn.dang{background:var(--red);border-color:var(--red);color:#fff}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+/* filter chips */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:99px;padding:7px 15px;font-size:12.5px;font-weight:700;color:var(--ink-2)}
+.chip small{display:block;font-size:10px;font-weight:600;color:var(--ink-3)}
+.chip.on{background:var(--pine-2);border-color:var(--pine-2);color:#fff}
+.chip.on small{color:#bcd8cc}
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden}
+.kpi .k-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);margin-bottom:8px}
+.kpi .k-val{font-family:var(--mono);font-size:30px;font-weight:600;line-height:1}
+.kpi .k-sub{font-size:11.5px;color:var(--ink-2);margin-top:8px}
+.kpi.alert{border-color:#efc9c4;background:linear-gradient(180deg,#fff, #fdf3f1)}
+.kpi.alert .k-val{color:var(--red)}
+.kpi.gold-b{border-left:4px solid var(--gold)}
+/* big carbon box */
+.bigbox{background:var(--pine);border-radius:14px;color:#eaf3ee;padding:22px 24px;margin-bottom:22px;display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:26px}
+.bigbox .b-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:#93b5a6;margin-bottom:8px;font-weight:700}
+.bigbox .b-val{font-family:var(--mono);font-size:34px;font-weight:600;line-height:1.05}
+.bigbox .b-unit{font-size:12px;color:#a9c4b8;margin-top:6px}
+.bigbox .brk{display:flex;flex-direction:column;gap:10px}
+.brk .row{display:grid;grid-template-columns:64px 1fr 110px;gap:10px;align-items:center;font-size:12px}
+.brk .bar{height:8px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden}
+.brk .bar i{display:block;height:100%;border-radius:99px}
+.brk .v{font-family:var(--mono);text-align:right;font-size:12px}
+/* table */
+table.list{width:100%;border-collapse:collapse;font-size:13px}
+table.list th{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);background:#fafbfa}
+table.list td{padding:11px 12px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+table.list tr.click{cursor:pointer}
+table.list tr.click:hover td{background:#f6f9f7}
+.pname{font-weight:700}.pcomp{font-size:11.5px;color:var(--ink-2)}
+.stagecell{font-size:12px}.stagecell b{font-family:var(--mono)}
+/* ===== pipeline (Progress) ===== */
+.pipe-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin:6px 0 16px}
+.pipe-legend span{display:inline-flex;align-items:center;gap:6px}
+.dotk{width:10px;height:10px;border-radius:3px;background:var(--gold)}
+.dotm{width:10px;height:10px;border-radius:3px;background:var(--pine-2)}
+.doto{width:10px;height:10px;border-radius:3px;background:#102a43}
+.lane-title{display:flex;align-items:center;gap:10px;margin:22px 0 10px;font-size:13px;font-weight:800}
+.lane-title .ln{font-family:var(--mono);font-size:11px;color:var(--ink-3);font-weight:500}
+.pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stg{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:12px 13px;position:relative;display:flex;flex-direction:column;gap:8px;min-height:132px}
+.stg .s-top{display:flex;align-items:flex-start;gap:9px}
+.stg .s-n{font-family:var(--mono);font-size:12px;font-weight:600;background:var(--pine-2);color:#fff;border-radius:7px;width:30px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stg.oto-s .s-n{background:#102a43}
+.stg.kep{border-color:#e3c78a;background:linear-gradient(180deg,#fff,#fdf9ef)}
+.stg.kep .s-n{background:var(--gold)}
+.stg .s-name{font-size:12px;font-weight:700;line-height:1.35}
+.stg .s-actor{font-size:10.5px;color:var(--ink-3)}
+.stg .s-count{margin-left:auto;font-family:var(--mono);font-size:13px;font-weight:600;background:#eef1ef;border-radius:7px;padding:2px 8px;flex-shrink:0}
+.stg .s-count.has{background:var(--green-bg);color:var(--green)}
+.stg .s-projects{display:flex;flex-wrap:wrap;gap:5px;margin-top:auto}
+.pchip{font-family:var(--mono);font-size:10.5px;border:1px solid var(--line);border-radius:6px;padding:2px 6px;background:#fff;cursor:pointer}
+.pchip:hover{border-color:var(--pine-2);color:var(--pine-2)}
+.pchip.ip{border-color:#cfc8f0;background:var(--ippu-bg);color:var(--ippu)}
+.pchip.en{border-color:#f0dcC0;background:var(--energi-bg);color:var(--energi)}
+.pchip.wa{border-color:#c4e2ec;background:var(--limbah-bg);color:var(--limbah)}
+.stg .kbtn{margin-top:4px}
+.fork{display:flex;align-items:center;gap:12px;margin:20px 0 4px;color:var(--ink-2);font-size:12px}
+.fork .fline{flex:1;border-top:2px dashed #9db3aa}
+.fork .flabel{background:#102a43;color:#cfe3f5;font-size:11px;font-weight:700;border-radius:99px;padding:4px 14px;letter-spacing:.04em}
+/* ===== modal ===== */
+.overlay{position:fixed;inset:0;background:rgba(13,26,21,.55);display:none;align-items:flex-start;justify-content:center;z-index:100;padding:34px 16px;overflow-y:auto}
+.overlay.open{display:flex}
+.modal{background:var(--card);border-radius:14px;width:100%;max-width:980px;box-shadow:0 24px 70px rgba(0,0,0,.3)}
+.modal .m-head{padding:18px 22px 0;display:flex;align-items:flex-start;gap:12px}
+.m-head .m-title{font-size:16px;font-weight:800}
+.m-head .m-sub{font-size:12px;color:var(--ink-2);margin-top:3px}
+.m-head .x{margin-left:auto;border:none;background:#eef1ef;border-radius:8px;width:30px;height:30px;font-size:15px;flex-shrink:0}
+.subtabs{display:flex;gap:4px;padding:14px 22px 0;border-bottom:1px solid var(--line)}
+.subtabs button{border:none;background:none;padding:9px 14px;font-size:13px;font-weight:700;color:var(--ink-2);border-bottom:2.5px solid transparent}
+.subtabs button.on{color:var(--pine-2);border-color:var(--pine-2)}
+.m-body{padding:20px 22px 24px;max-height:64vh;overflow-y:auto}
+.dl{display:grid;grid-template-columns:210px 1fr;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:13px}
+.dl>div{padding:9px 13px;border-bottom:1px solid var(--line-2)}
+.dl>div:nth-last-child(-n+2){border-bottom:none}
+.dl .dt{background:#fafbfa;font-weight:700;font-size:12px;color:var(--ink-2)}
+/* mini stepper in modal */
+.mini-step{display:flex;gap:3px;margin:14px 0 4px;flex-wrap:wrap}
+.ms{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10.5px;background:#eef1ef;color:var(--ink-3);position:relative}
+.ms.done{background:var(--green-bg);color:var(--green)}
+.ms.cur{background:var(--pine-2);color:#fff;font-weight:600;outline:2px solid #b9d6c9;outline-offset:1px}
+.ms.kepm{box-shadow:inset 0 -3px 0 var(--gold)}
+.ms.lock{opacity:.35}
+.step-note{font-size:11.5px;color:var(--ink-2);margin-bottom:10px}
+/* berkas */
+.file-row{display:flex;align-items:center;gap:12px;padding:10px 13px;border:1px solid var(--line);border-radius:9px;margin-bottom:8px}
+.file-row .f-ic{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.file-row.ada .f-ic{background:var(--green-bg)}
+.file-row.blm .f-ic{background:#f1f3f1}
+.file-row .f-name{font-weight:700;font-size:12.5px}
+.file-row .f-file{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.file-row .f-st{margin-left:auto}
+/* riwayat */
+.tl{position:relative;padding-left:22px}
+.tl::before{content:'';position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.tl .ev{position:relative;padding-bottom:16px}
+.tl .ev::before{content:'';position:absolute;left:-20.5px;top:4px;width:10px;height:10px;border-radius:50%;background:#fff;border:2.5px solid var(--pine-2)}
+.tl .ev.now::before{background:var(--gold);border-color:var(--gold)}
+.tl .ev .e-t{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.tl .ev .e-n{font-size:13px;font-weight:600}
+.tl .ev .e-d{font-size:12px;color:var(--ink-2)}
+/* ===== surat / kop ===== */
+.surat{background:#fff;border:1px solid var(--line);border-radius:4px;padding:34px 44px;font-family:'Times New Roman',Times,serif;font-size:13.5px;line-height:1.65;color:#111;box-shadow:0 2px 14px rgba(0,0,0,.06)}
+.kop{display:flex;gap:16px;align-items:center;border-bottom:3.5px solid #111;padding-bottom:10px;margin-bottom:4px}
+.kop::after{display:none}
+.kop .kop-emb{width:64px;height:64px;flex-shrink:0}
+.kop .kop-tx{text-align:center;flex:1}
+.kop .kop-tx .l1{font-weight:bold;font-size:15px;letter-spacing:.04em}
+.kop .kop-tx .l2{font-weight:bold;font-size:13.5px}
+.kop .kop-tx .l3{font-weight:bold;font-size:14.5px}
+.kop .kop-tx .l4{font-size:10.5px;margin-top:3px}
+.kop-line2{border-bottom:1px solid #111;margin-bottom:18px}
+.surat .s-meta{margin-bottom:16px}
+.surat .s-meta td{padding:1px 6px 1px 0;vertical-align:top;font-size:13.5px}
+.surat h4.s-jenis{text-align:center;text-decoration:underline;font-size:14px;margin:6px 0 2px}
+.surat .s-no{text-align:center;margin-bottom:18px;font-size:13px}
+.surat p{margin-bottom:11px;text-align:justify}
+.surat ol,.surat ul{margin:0 0 11px 26px}
+.surat li{margin-bottom:4px}
+.surat .ttd{margin-top:30px;margin-left:auto;width:290px;text-align:center}
+.surat .ttd .an{font-size:12.5px}
+.surat .ttd .gap{height:64px;position:relative}
+.surat .ttd .stamp{position:absolute;left:8px;top:8px;width:56px;height:56px;border:2px solid rgba(18,56,46,.55);border-radius:50%;transform:rotate(-8deg);display:flex;align-items:center;justify-content:center;font-size:7px;color:rgba(18,56,46,.65);text-align:center;font-family:var(--sans);font-weight:700}
+.surat .draftmark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.surat-wrap{position:relative}
+.draftmark span{font-size:64px;font-weight:800;color:rgba(180,35,24,.08);transform:rotate(-24deg);letter-spacing:.2em;font-family:var(--sans)}
+/* keputusan layout */
+.kep-grid{display:grid;grid-template-columns:400px 1fr;gap:18px;align-items:start}
+.klist .krow{border:1px solid var(--line);border-radius:11px;padding:13px 15px;margin-bottom:10px;cursor:pointer;background:var(--card)}
+.klist .krow:hover{border-color:var(--pine-2)}
+.klist .krow.on{border-color:var(--pine-2);box-shadow:0 0 0 2.5px #cfe3d9}
+.krow .kr-top{display:flex;gap:8px;align-items:center;margin-bottom:5px}
+.krow .kr-name{font-weight:800;font-size:13px}
+.krow .kr-sub{font-size:11.5px;color:var(--ink-2)}
+.krow .kr-sla{margin-top:7px;display:flex;gap:8px;align-items:center;font-size:11px}
+.sla-bar{flex:1;height:6px;border-radius:99px;background:#eef1ef;overflow:hidden}
+.sla-bar i{display:block;height:100%;border-radius:99px}
+.form-row{margin-bottom:13px}
+.form-row label{display:block;font-size:11.5px;font-weight:700;color:var(--ink-2);margin-bottom:5px}
+.form-row input,.form-row textarea,.form-row select{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;background:#fff}
+.form-row textarea{min-height:88px;resize:vertical;line-height:1.5}
+.radio-cards{display:flex;flex-direction:column;gap:7px}
+.radio-cards label.rc{display:flex;gap:10px;border:1px solid var(--line);border-radius:9px;padding:10px 12px;cursor:pointer;font-size:12.5px;align-items:flex-start}
+.radio-cards label.rc.sel{border-color:var(--pine-2);background:#f4faf7}
+.radio-cards label.rc input{width:auto;margin-top:2px}
+.act-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+/* arsip */
+.arsip-row td .aj{font-weight:700}
+/* mandat */
+.mandat-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:18px;align-items:start}
+.kuasa-tb td:first-child{font-family:var(--mono);font-size:12px;color:var(--ink-3);width:34px}
+.legal-note{border-left:4px solid var(--gold);background:var(--gold-bg);border-radius:0 9px 9px 0;padding:13px 16px;font-size:12.5px;margin-bottom:16px}
+.legal-note b{display:block;margin-bottom:3px}
+/* users */
+.role-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.role-c{border:1px solid var(--line);border-radius:11px;padding:14px 15px;background:var(--card)}
+.role-c .r-n{font-weight:800;font-size:13px;margin-bottom:4px}
+.role-c .r-d{font-size:11.5px;color:var(--ink-2);min-height:48px}
+.role-c .r-c{font-family:var(--mono);font-size:12px;margin-top:8px;color:var(--pine-2);font-weight:600}
+.perm-tb .y{color:var(--green);font-weight:800}
+.perm-tb .n{color:#c6cfc9}
+/* toast */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--pine);color:#fff;border-radius:10px;padding:12px 20px;font-size:13px;font-weight:600;opacity:0;transition:.25s;z-index:200;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* misc */
+.empty{border:1.5px dashed var(--line);border-radius:11px;padding:34px;text-align:center;color:var(--ink-3);font-size:13px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.notice-int{font-size:11px;color:var(--ink-3);margin-top:14px;font-style:italic}
+@media (max-width:1080px){.kpis{grid-template-columns:repeat(2,1fr)}.pipe{grid-template-columns:repeat(2,1fr)}.bigbox{grid-template-columns:1fr}.kep-grid{grid-template-columns:1fr}.mandat-grid{grid-template-columns:1fr}.role-cards{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:760px){.app{flex-direction:column}.side{width:100%;height:auto;position:static}.pipe{grid-template-columns:1fr}.dl{grid-template-columns:1fr}.dl .dt{border-bottom:none;padding-bottom:2px}.surat{padding:22px 18px}.content{padding:16px 14px 50px}.kpis{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* ===== informasi umum diperkaya ===== */
+.ihead{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;padding:15px 17px;margin:14px 0;background:linear-gradient(180deg,#fbfdfb,#fff)}
+.prop-wrap{flex:1;min-width:270px}
+.prop-lb{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:800;margin-bottom:5px}
+.prop-1{font-size:20px;font-weight:800;line-height:1.25;letter-spacing:-.01em}
+.prop-role{font-size:11.5px;color:var(--ink-3);font-weight:600;margin-top:2px}
+.prop-list{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.prop-item{font-size:12.5px;color:var(--ink-2);display:flex;gap:8px;align-items:flex-start;font-weight:600}
+.prop-item .dotp{width:6px;height:6px;border-radius:50%;background:var(--pine-2);margin-top:6px;flex-shrink:0}
+.progbadge{display:flex;gap:11px;align-items:center;border:1px solid var(--line);border-radius:11px;padding:10px 13px;background:#fff;min-width:216px;text-decoration:none;color:inherit}
+.progbadge:hover{border-color:var(--pine-2)}
+.progbadge .mk{width:40px;height:40px;border-radius:10px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;font-family:var(--mono);flex-shrink:0}
+.progbadge .pn{font-size:13px;font-weight:800;line-height:1.2}
+.progbadge .pd{font-size:10.5px;color:var(--ink-3);margin-top:2px}
+.sect{margin:18px 0 8px;font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--pine-2)}
+.desk{font-size:13.5px;line-height:1.78;color:var(--ink-2)}
+.addl{margin-top:11px;border-left:3px solid var(--gold);background:var(--gold-bg);padding:11px 15px;border-radius:0 9px 9px 0;font-size:12.5px;line-height:1.72;color:#5b4708}
+.sdgs{display:flex;flex-wrap:wrap;gap:8px}
+.sdg{display:flex;align-items:center;gap:8px;border-radius:9px;padding:6px 11px 6px 6px;color:#fff;font-size:11.5px;font-weight:700;line-height:1.2;max-width:265px}
+.sdg .num{background:rgba(255,255,255,.24);border-radius:6px;width:25px;height:25px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;flex-shrink:0}
+.maplot{border:1px solid var(--line);border-radius:11px;overflow:hidden}
+#lmap{height:290px;width:100%;background:#eaf0ec}
+.map-cap{font-size:11.5px;color:var(--ink-3);padding:9px 13px;border-top:1px solid var(--line-2);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fafbfa}
+.metlink{color:var(--limbah);text-decoration:none;border-bottom:1px dashed var(--limbah);font-family:var(--mono);font-size:12.5px}
+.metlink:hover{color:var(--pine-2);border-color:var(--pine-2)}
+/* ===== pipeline diperbesar & cabang otorisasi dibedakan ===== */
+.pipe{gap:14px}
+.stg{padding:14px 15px;min-height:158px}
+.stg .s-name{font-size:13px}
+.stg .s-n{width:34px;height:27px;font-size:12.5px}
+.stg .s-projects{flex-direction:column;align-items:stretch;gap:6px}
+.prow{display:flex;gap:9px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:#fff;cursor:pointer;transition:.14s}
+.prow:hover{border-color:var(--pine-2);background:#f5faf7;transform:translateX(2px)}
+.prow .pk{font-family:var(--mono);font-size:10.5px;font-weight:600;border-radius:5px;padding:2px 6px;flex-shrink:0;border:1px solid transparent}
+.prow .pt{font-size:11.5px;font-weight:700;line-height:1.32;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;color:var(--ink)}
+.prow .ar{color:var(--ink-3);font-size:14px;flex-shrink:0}
+.prow.ip .pk{background:var(--ippu-bg);color:var(--ippu);border-color:#cfc8f0}
+.prow.en .pk{background:var(--energi-bg);color:var(--energi);border-color:#f0dcc0}
+.prow.wa .pk{background:var(--limbah-bg);color:var(--limbah);border-color:#c4e2ec}
+.s-empty{font-size:11px;color:var(--ink-3)}
+.more-btn{border:1px dashed var(--line);background:#fafbfa;border-radius:8px;padding:6px 9px;font-size:11.5px;font-weight:700;color:var(--pine-2);cursor:pointer;width:100%;font-family:inherit}
+.more-btn:hover{border-color:var(--pine-2);background:#f0f6f2}
+.oto-zone{background:#eef3f9;border:1px dashed #9db6cf;border-radius:14px;padding:15px;margin-top:2px}
+.oto-zone .stg{background:#fbfcfe;border-color:#c6d5e6}
+.fork{margin:22px 0 6px}
+.fork .fline{border-top:2px dashed #7f9dbd}
+.fork .flabel{background:#24467a;color:#dbe8f7}
+.stg.oto-s .s-n{background:#24467a}
+.oto-note{font-size:11.5px;color:#33506f;margin-top:10px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="logo-row">
+        <svg class="mark" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="#1a4d3f"/><path d="M20 7c-6 4-9 8.5-9 14a9 9 0 0 0 18 0c0-5.5-3-10-9-14Z" stroke="#8fd4b4" stroke-width="2.2" fill="none"/><path d="M20 13v14M20 27c0-4 3-5.5 5-6M20 23c0-3.5-2.5-5-4.5-6" stroke="#8fd4b4" stroke-width="2" stroke-linecap="round"/></svg>
+        <div><h1>SIINAS</h1></div>
+      </div>
+      <div class="sub">Modul Offset Karbon Industri<br>Pusat Industri Hijau · BSKJI · Kemenperin</div>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="nlabel">Pemantauan</div>
+      <button data-page="ringkasan" class="on">▦ Ringkasan Eksekutif</button>
+      <button data-page="progress">⇶ Progress Kegiatan</button>
+      <div class="nlabel">Tindak Lanjut</div>
+      <button data-page="keputusan">✎ Keputusan <span class="badge" id="nav-kep-badge">0</span></button>
+      <button data-page="arsip">▤ Arsip Surat</button>
+      <div class="nlabel">Administrasi</div>
+      <button data-page="mandat">§ Kewenangan Tanda Tangan</button>
+      <button data-page="pengguna">◉ Pengguna &amp; Peran</button>
+    </nav>
+    <div class="foot">Prototipe UI/UX — data dummy (30 proyek CDM fasilitas industri).<br>Sumber data produksi: sinkronisasi SRUK · KLH.</div>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <div><h2 id="tb-title">Ringkasan Eksekutif</h2><div class="crumb" id="tb-crumb">SIINAS / Offset Karbon / Ringkasan</div></div>
+      <div class="who"><div style="text-align:right"><div class="rname">Rr. Sri Gadis Pari Bekti</div><div class="rrole">Pejabat Teknis — PIH</div></div><div class="avatar">SG</div></div>
+    </div>
+    <div class="content" id="view"></div>
+  </div>
+</div>
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<div id="toast"></div>
+<script>
+/* =====================================================================
+   DATA — 30 proyek dummy CDM fasilitas industri (sumber: SRUK, 19 Agu)
+   Semantik "tahap": proyek SEDANG BERADA pada tahap tsb (belum selesai).
+   Titik keputusan menteri terkait: tahap 5, 11, dan 14.
+   ===================================================================== */
+const TODAY = new Date('2026-08-19');
+const STAGES = [
+ {n:1, nama:'Pendaftaran', aktor:'Pelaku Usaha', sistem:'SRUK'},
+ {n:2, nama:'Pengisian Data Umum', aktor:'Pelaku Usaha', sistem:'SRUK'},
+ {n:3, nama:'Pengisian Data Teknis', aktor:'Pelaku Usaha', sistem:'SRUK'},
+ {n:4, nama:'Penyampaian DRAM/DPP', aktor:'Pelaku Usaha', sistem:'SRUK'},
+ {n:5, nama:'Surat Pemberitahuan Penerimaan & Pengakuan Pencatatan Aksi Mitigasi', aktor:'Menteri Terkait', kep:true},
+ {n:6, nama:'Validasi DRAM oleh LVV', aktor:'LVV'},
+ {n:7, nama:'Laporan Validasi Masuk SRUK (paralel terinfokan ke SIINAS)', aktor:'SRUK'},
+ {n:8, nama:'Penyampaian Laporan Capaian Aksi Mitigasi (LCAM)', aktor:'Pelaku Usaha'},
+ {n:9, nama:'Pelaksanaan Verifikasi oleh LVV', aktor:'LVV'},
+ {n:10, nama:'Laporan Verifikasi', aktor:'LVV'},
+ {n:11, nama:'Rekomendasi / Persetujuan Penerbitan Unit Karbon', aktor:'Menteri Terkait', kep:true},
+ {n:12, nama:'Penerbitan Unit Karbon Offset Emisi GRK oleh SRUK', aktor:'SRUK'},
+ {n:13, nama:'Permohonan Rekomendasi Otorisasi Unit Karbon', aktor:'Pelaku Usaha', oto:true},
+ {n:14, nama:'Penyampaian Rekomendasi Otorisasi kepada Menteri Lingkungan Hidup', aktor:'Menteri Terkait', kep:true, oto:true},
+ {n:15, nama:'Pemberian Otorisasi oleh Menteri Lingkungan Hidup', aktor:'KLH', oto:true},
+ {n:16, nama:'Pencatatan Corresponding Adjustment di SRUK', aktor:'SRUK', oto:true}
+];
+const KBLI = {C2394:'Industri Semen, Kapur dan Gips',C2030:'Industri Serat/Filamen Buatan',C2410:'Industri Logam Dasar Besi dan Baja',C1920:'Industri Produk Pengilangan Minyak Bumi',C1072:'Industri Gula',C1311:'Industri Pemintalan Benang / Tekstil',C2011:'Industri Kimia Dasar Organik',C2012:'Industri Pupuk dan Bahan Senyawa Nitrogen',C1701:'Industri Bubur Kertas (Pulp) dan Kertas',C2310:'Industri Kaca',C1040:'Industri Minyak dan Lemak Nabati (CPO)',C1079:'Industri Produk Makanan Lainnya',E3821:'Pengelolaan dan Pembuangan Sampah Tidak Berbahaya',C1062:'Industri Pati dan Produk Pati (Tapioka)',C1030:'Industri Pengolahan dan Pengawetan Buah/Sayuran',C2211:'Industri Ban dan Pengolahan Karet',C2420:'Industri Logam Dasar Bukan Besi (Aluminium)',C2825:'Industri Mesin Pendingin'};
+const LVVS = ['PT Validasi Karbon Nusantara (LVV-GRK-001)','PT Mutu Verifikasi Indonesia (LVV-GRK-004)','PT Sertifikasi GRK Andalan (LVV-GRK-007)'];
+/* kode, nama, perus, sektor, tipe, met(kode vver), emisi(tCO2e/thn), lok, isic, mulai-akhir(dur), tahap, jalur('OTO'|'NON'), masuk (tgl masuk tahap berjalan), selesai */
+const P = (o)=>Object.assign({selesai:false,status:'aktif',klarifikasi:false},o);
+const PROJECTS = [
+P({kode:'ENG-01',nama:'WHR Power Generation — Semen Nusantara Timur',perus:'PT Semen Nusantara Timur',sektor:'Energi',tipe:'Energy efficiency',met:'AM0024 v2.1',emisi:52000,lok:'Pabrik semen, Tuban, Jawa Timur',isic:'C2394',mulai:'2016',akhir:'2025',dur:10,tahap:1,jalur:'NON',masuk:'2026-08-11'}),
+P({kode:'ENG-02',nama:'Fuel Switch Batubara ke Gas Alam — Kimia Serat Andalan',perus:'PT Kimia Serat Andalan',sektor:'Energi',tipe:'Fuel switch',met:'ACM0009 v4.0',emisi:88000,lok:'Fasilitas serat sintetis, Cilegon, Banten',isic:'C2030',mulai:'2015',akhir:'2022',dur:7,tahap:1,jalur:'NON',masuk:'2026-08-14'}),
+P({kode:'ENG-03',nama:'Efisiensi Energi Fasilitas Baja — Baja Sejahtera',perus:'PT Baja Sejahtera',sektor:'Energi',tipe:'Energy efficiency',met:'AMS-II.D v13.0',emisi:24000,lok:'Pabrik baja, Cilegon, Banten',isic:'C2410',mulai:'2017',akhir:'2027',dur:10,tahap:1,jalur:'NON',masuk:'2026-08-17'}),
+P({kode:'ENG-04',nama:'Recovery Gas Buang Kilang — Kilang Energi Balongan',perus:'PT Kilang Energi Balongan',sektor:'Energi',tipe:'Energy efficiency',met:'AM0055 v2.0',emisi:120000,lok:'Kilang minyak, Indramayu, Jawa Barat',isic:'C1920',mulai:'2014',akhir:'2024',dur:10,tahap:1,jalur:'OTO',masuk:'2026-08-05'}),
+P({kode:'ENG-05',nama:'Kogenerasi Pabrik Gula — Gula Manis Lampung',perus:'PT Gula Manis Lampung',sektor:'Energi',tipe:'Biomass',met:'AM0048 v4.0',emisi:65000,lok:'Pabrik gula, Lampung Tengah, Lampung',isic:'C1072',mulai:'2018',akhir:'2024',dur:7,tahap:2,jalur:'NON',masuk:'2026-08-03'}),
+P({kode:'ENG-06',nama:'Efisiensi Boiler Tekstil — Tekstil Prima Jaya',perus:'PT Tekstil Prima Jaya',sektor:'Energi',tipe:'Energy efficiency',met:'AM0044 v1.0.1',emisi:18000,lok:'Pabrik tekstil, Bandung, Jawa Barat',isic:'C1311',mulai:'2016',akhir:'2023',dur:7,tahap:2,jalur:'NON',masuk:'2026-07-29'}),
+P({kode:'ENG-07',nama:'Waste Energy Recovery — Petrokimia Timur',perus:'PT Petrokimia Timur',sektor:'Energi',tipe:'Energy efficiency',met:'ACM0012 v6.0',emisi:95000,lok:'Fasilitas petrokimia, Gresik, Jawa Timur',isic:'C2011',mulai:'2015',akhir:'2025',dur:10,tahap:3,jalur:'NON',masuk:'2026-07-22'}),
+P({kode:'ENG-08',nama:'Optimasi Sistem Uap — Pupuk Katulistiwa',perus:'PT Pupuk Katulistiwa',sektor:'Energi',tipe:'Energy efficiency',met:'AM0018 v3.0',emisi:40000,lok:'Pabrik pupuk, Bontang, Kalimantan Timur',isic:'C2012',mulai:'2013',akhir:'2023',dur:10,tahap:3,jalur:'NON',masuk:'2026-08-06'}),
+P({kode:'ENG-09',nama:'Captive Power Biomassa — Pulp Kertas Riau',perus:'PT Pulp Kertas Riau',sektor:'Energi',tipe:'Biomass',met:'ACM0006 v16.0',emisi:140000,lok:'Pabrik pulp & kertas, Pelalawan, Riau',isic:'C1701',mulai:'2017',akhir:'2027',dur:10,tahap:3,jalur:'OTO',masuk:'2026-08-10'}),
+P({kode:'ENG-10',nama:'Efisiensi Sisi Suplai — Kaca Cemerlang',perus:'PT Kaca Cemerlang',sektor:'Energi',tipe:'Energy efficiency',met:'AMS-II.B v10.0',emisi:15000,lok:'Pabrik kaca, Sidoarjo, Jawa Timur',isic:'C2310',mulai:'2018',akhir:'2025',dur:7,tahap:5,jalur:'NON',masuk:'2026-07-01'}),
+P({kode:'WST-01',nama:'Methane Recovery POME — Sawit Lestari Riau',perus:'PT Sawit Lestari Riau',sektor:'Limbah',tipe:'Biogas',met:'AMS-III.H v18.0',emisi:34000,lok:'Pabrik kelapa sawit (PKS), Rokan Hulu, Riau',isic:'C1040',mulai:'2016',akhir:'2026',dur:10,tahap:5,jalur:'NON',masuk:'2026-07-17'}),
+P({kode:'WST-02',nama:'Anaerobik ke Aerobik IPAL — Tekstil Warna Sentosa',perus:'PT Tekstil Warna Sentosa',sektor:'Limbah',tipe:'Methane avoidance',met:'AMS-III.I v9.0',emisi:12000,lok:'IPAL pabrik tekstil, Sukoharjo, Jawa Tengah',isic:'C1311',mulai:'2017',akhir:'2024',dur:7,tahap:5,jalur:'NON',masuk:'2026-08-03'}),
+P({kode:'WST-03',nama:'Pengolahan Air Limbah — Kertas Mekar',perus:'PT Kertas Mekar',sektor:'Limbah',tipe:'Methane avoidance',met:'ACM0014 v6.0',emisi:28000,lok:'IPAL pabrik kertas, Mojokerto, Jawa Timur',isic:'C1701',mulai:'2015',akhir:'2025',dur:10,tahap:5,jalur:'NON',masuk:'2026-08-10'}),
+P({kode:'WST-04',nama:'Komposting Limbah Organik — Pangan Olahan Sejati',perus:'PT Pangan Olahan Sejati',sektor:'Limbah',tipe:'Methane avoidance',met:'AMS-III.F v12.0',emisi:9000,lok:'Fasilitas pengolahan pangan, Bekasi, Jawa Barat',isic:'C1079',mulai:'2018',akhir:'2025',dur:7,tahap:6,jalur:'NON',masuk:'2026-07-27',lvv:LVVS[0]}),
+P({kode:'WST-05',nama:'Alternative Waste Treatment — Kawasan Industri Cikarang',perus:'PT Kawasan Industri Cikarang',sektor:'Limbah',tipe:'Waste',met:'AM0025 v14.0',emisi:45000,lok:'Fasilitas pengolahan limbah kawasan industri, Bekasi, Jawa Barat',isic:'E3821',mulai:'2014',akhir:'2024',dur:10,tahap:7,jalur:'NON',masuk:'2026-08-12',lvv:LVVS[1]}),
+P({kode:'WST-06',nama:'Landfill Gas Capture — Estate Karawang',perus:'PT Estate Karawang',sektor:'Limbah',tipe:'Landfill gas',met:'ACM0001 v13.0',emisi:60000,lok:'TPA kawasan industri, Karawang, Jawa Barat',isic:'E3821',mulai:'2016',akhir:'2026',dur:10,tahap:8,jalur:'OTO',masuk:'2026-07-30',lvv:LVVS[1]}),
+P({kode:'WST-07',nama:'Methane Recovery Air Limbah Tapioka — Tepung Tapioka Lampung',perus:'PT Tepung Tapioka Lampung',sektor:'Limbah',tipe:'Biogas',met:'AMS-III.H v18.0',emisi:22000,lok:'IPAL pabrik tapioka, Lampung Tengah, Lampung',isic:'C1062',mulai:'2017',akhir:'2024',dur:7,tahap:9,jalur:'NON',masuk:'2026-08-04',lvv:LVVS[2]}),
+P({kode:'WST-08',nama:'Biogas POME — Sawit Makmur Jambi',perus:'PT Sawit Makmur Jambi',sektor:'Limbah',tipe:'Biogas',met:'AMS-III.H v18.0',emisi:38000,lok:'Pabrik kelapa sawit (PKS), Muaro Jambi, Jambi',isic:'C1040',mulai:'2018',akhir:'2028',dur:10,tahap:10,jalur:'OTO',masuk:'2026-08-07',lvv:LVVS[0]}),
+P({kode:'WST-09',nama:'Komposting Residu Agroindustri — Agroindustri Nusantara',perus:'PT Agroindustri Nusantara',sektor:'Limbah',tipe:'Methane avoidance',met:'AMS-III.F v12.0',emisi:7500,lok:'Fasilitas agroindustri, Lampung Selatan, Lampung',isic:'C1030',mulai:'2019',akhir:'2025',dur:7,tahap:11,jalur:'NON',masuk:'2026-07-06',lvv:LVVS[2]}),
+P({kode:'WST-10',nama:'Anaerobik ke Aerobik IPAL Karet — Karet Olahan Sumsel',perus:'PT Karet Olahan Sumsel',sektor:'Limbah',tipe:'Methane avoidance',met:'AMS-III.I v9.0',emisi:14000,lok:'IPAL pabrik karet, Palembang, Sumatera Selatan',isic:'C2211',mulai:'2016',akhir:'2023',dur:7,tahap:11,jalur:'NON',masuk:'2026-08-12',lvv:LVVS[0]}),
+P({kode:'IPP-01',nama:'Destruksi N2O Tail Gas Asam Nitrat — Nitrat Kimia Gresik',perus:'PT Nitrat Kimia Gresik',sektor:'IPPU',tipe:'N2O abatement',met:'AM0028 v5.0',emisi:310000,lok:'Pabrik asam nitrat, Gresik, Jawa Timur',isic:'C2012',mulai:'2013',akhir:'2023',dur:10,tahap:11,jalur:'OTO',masuk:'2026-07-10',lvv:LVVS[1]}),
+P({kode:'IPP-02',nama:'Reduksi N2O Ammonia Burner — Pupuk Sriwijaya Nitro',perus:'PT Pupuk Sriwijaya Nitro',sektor:'IPPU',tipe:'N2O abatement',met:'AM0034 v5.1',emisi:280000,lok:'Pabrik asam nitrat, Palembang, Sumatera Selatan',isic:'C2012',mulai:'2014',akhir:'2024',dur:10,tahap:12,jalur:'OTO',masuk:'2026-08-06',lvv:LVVS[2]}),
+P({kode:'IPP-03',nama:'Dekomposisi N2O Asam Adipat — Adipat Kimia Nusantara',perus:'PT Adipat Kimia Nusantara',sektor:'IPPU',tipe:'N2O abatement',met:'AM0021 v3.0',emisi:1200000,lok:'Pabrik asam adipat, Cilegon, Banten',isic:'C2011',mulai:'2012',akhir:'2021',dur:10,tahap:12,jalur:'NON',masuk:'2026-08-13',lvv:LVVS[0]}),
+P({kode:'IPP-04',nama:'Insinerasi HFC-23 — Refrigeran Kimia Indonesia',perus:'PT Refrigeran Kimia Indonesia',sektor:'IPPU',tipe:'HFC destruction',met:'AM0001 v6.0',emisi:2500000,lok:'Pabrik HCFC-22, Cilegon, Banten',isic:'C2011',mulai:'2012',akhir:'2022',dur:10,tahap:13,jalur:'OTO',masuk:'2026-08-10',lvv:LVVS[1]}),
+P({kode:'IPP-05',nama:'Semen Blended (Substitusi Klinker) — Semen Merdeka',perus:'PT Semen Merdeka',sektor:'IPPU',tipe:'Cement',met:'ACM0005 v6.0',emisi:72000,lok:'Pabrik semen, Cirebon, Jawa Barat',isic:'C2394',mulai:'2016',akhir:'2026',dur:10,tahap:13,jalur:'OTO',masuk:'2026-08-14',lvv:LVVS[2]}),
+P({kode:'IPP-06',nama:'Bahan Baku Non-Karbonat — Semen Padang Baru',perus:'PT Semen Padang Baru',sektor:'IPPU',tipe:'Cement',met:'AM0033 v3.0',emisi:48000,lok:'Pabrik semen, Padang, Sumatera Barat',isic:'C2394',mulai:'2017',akhir:'2024',dur:7,tahap:14,jalur:'OTO',masuk:'2026-08-05',lvv:LVVS[0]}),
+P({kode:'IPP-07',nama:'Reduksi PFC Smelter Aluminium — Aluminium Inalum Baru',perus:'PT Aluminium Inalum Baru',sektor:'IPPU',tipe:'PFC reduction',met:'AM0059 v2.0',emisi:210000,lok:'Smelter aluminium primer, Batu Bara, Sumatera Utara',isic:'C2420',mulai:'2015',akhir:'2025',dur:10,tahap:15,jalur:'OTO',masuk:'2026-08-11',lvv:LVVS[1]}),
+P({kode:'IPP-08',nama:'Avoidance HFC Refrigerasi — Pendingin Komersial Jaya',perus:'PT Pendingin Komersial Jaya',sektor:'IPPU',tipe:'HFC avoidance',met:'AMS-III.N v5.0',emisi:6000,lok:'Fasilitas manufaktur pendingin komersial, Tangerang, Banten',isic:'C2825',mulai:'2018',akhir:'2025',dur:7,tahap:16,jalur:'OTO',masuk:'2026-08-13',lvv:LVVS[2]}),
+P({kode:'IPP-09',nama:'Semen Blended — Semen Kalimantan Raya',perus:'PT Semen Kalimantan Raya',sektor:'IPPU',tipe:'Cement',met:'ACM0005 v6.0',emisi:68000,lok:'Pabrik semen, Balikpapan, Kalimantan Timur',isic:'C2394',mulai:'2017',akhir:'2026',dur:10,tahap:16,jalur:'OTO',masuk:'2026-07-24',selesai:true,lvv:LVVS[0]}),
+P({kode:'IPP-10',nama:'Destruksi N2O Asam Nitrat — Kimia Nitrogen Bontang',perus:'PT Kimia Nitrogen Bontang',sektor:'IPPU',tipe:'N2O abatement',met:'AM0028 v5.0',emisi:295000,lok:'Pabrik asam nitrat, Bontang, Kalimantan Timur',isic:'C2012',mulai:'2014',akhir:'2024',dur:10,tahap:16,jalur:'OTO',masuk:'2026-07-02',selesai:true,lvv:LVVS[1]}),
+/* --- tambahan 3 proyek pada TAHAP 5 (titik keputusan pertama Kemenperin) --- */
+P({kode:'IPP-11',nama:'Substitusi Bahan Baku Non-Karbonat & Klinker Rendah — Semen Sulawesi Bersama',perus:'PT Semen Sulawesi Bersama',sektor:'IPPU',tipe:'Cement',met:'ACM0005 v6.0',emisi:54000,lok:'Pabrik semen terpadu, Maros, Sulawesi Selatan',isic:'C2394',mulai:'2019',akhir:'2029',dur:10,tahap:5,jalur:'NON',masuk:'2026-08-12'}),
+P({kode:'IPP-12',nama:'Destruksi N2O Sekunder Reaktor Asam Nitrat — Pupuk Cilacap Nitro',perus:'PT Pupuk Cilacap Nitro',sektor:'IPPU',tipe:'N2O abatement',met:'AM0034 v5.1',emisi:265000,lok:'Pabrik asam nitrat, Cilacap, Jawa Tengah',isic:'C2012',mulai:'2018',akhir:'2028',dur:10,tahap:5,jalur:'OTO',masuk:'2026-07-08'}),
+P({kode:'IPP-13',nama:'Konversi Refrigeran ber-GWP Rendah — Pendingin Industri Cikarang',perus:'PT Pendingin Industri Cikarang',sektor:'IPPU',tipe:'HFC avoidance',met:'AMS-III.N v5.0',emisi:8500,lok:'Fasilitas manufaktur sistem pendingin, Bekasi, Jawa Barat',isic:'C2825',mulai:'2020',akhir:'2027',dur:7,tahap:5,jalur:'NON',masuk:'2026-08-17'})
+];
+PROJECTS.forEach((p,i)=>{ p.nib = '812060' + String(1024001+i*137); });
+/* =====================================================================
+   PENGAYAAN INFORMASI UMUM
+   Sumber: turunan data dummy SRUK + template narasi per tipe proyek.
+   (prototipe: deskripsi & additionality dibangkitkan dari bank narasi
+    per tipe teknologi, bukan salinan PDD asli)
+   ===================================================================== */
+const CITY = {'Tuban':[-6.898,112.065],'Cilegon':[-6.017,106.054],'Indramayu':[-6.327,108.324],'Lampung Tengah':[-4.822,105.302],'Bandung':[-6.949,107.620],'Gresik':[-7.156,112.653],'Bontang':[0.132,117.493],'Pelalawan':[-0.350,101.943],'Sidoarjo':[-7.447,112.718],'Rokan Hulu':[0.902,100.421],'Sukoharjo':[-7.681,110.833],'Mojokerto':[-7.470,112.434],'Bekasi':[-6.241,107.001],'Karawang':[-6.322,107.303],'Muaro Jambi':[-1.552,103.720],'Lampung Selatan':[-5.551,105.554],'Palembang':[-2.976,104.751],'Padang':[-0.947,100.352],'Batu Bara':[3.281,99.552],'Tangerang':[-6.198,106.632],'Balikpapan':[-1.243,116.853],'Cirebon':[-6.706,108.551],'Maros':[-5.003,119.572],'Cilacap':[-7.723,109.021]};
+const PROG_META = {
+ 'SPEI':{nama:'SPEI-GRK (Sertifikasi Pengurangan Emisi Indonesia)', pendek:'SPEI-GRK', mono:'SP', c1:'#12382e', c2:'#2e7d57', link:'https://srn.menlhk.go.id/'},
+ 'CDM' :{nama:'Clean Development Mechanism (UNFCCC) — transisi ke Pasal 6.4', pendek:'CDM / Art. 6.4', mono:'CD', c1:'#0b4a6f', c2:'#0e7490', link:'https://cdm.unfccc.int/'},
+ 'VERRA':{nama:'Verified Carbon Standard (Verra VCS)', pendek:'Verra VCS', mono:'VR', c1:'#3f5c2a', c2:'#6a9c3a', link:'https://verra.org/programs/verified-carbon-standard/'},
+ 'GS'  :{nama:'Gold Standard for the Global Goals', pendek:'Gold Standard', mono:'GS', c1:'#8a6508', c2:'#d1a02a', link:'https://www.goldstandard.org/'}
+};
+const PROG_MAP = {'ENG-05':'GS','ENG-09':'GS','ENG-10':'SPEI','WST-01':'VERRA','WST-02':'SPEI','WST-06':'VERRA','WST-09':'GS','IPP-03':'VERRA','IPP-06':'SPEI','IPP-11':'SPEI','IPP-12':'SPEI','IPP-13':'SPEI'};
+const KOPRO = {
+ 'ENG-04':['PT Energi Karbon Nusantara — pengembang proyek'],
+ 'ENG-09':['Green Fibre Capital Pte. Ltd. — mitra pembiayaan proyek'],
+ 'WST-01':['PT Bumi Metana Lestari — pengembang proyek','Nusantara Carbon Partners Pte. Ltd. — mitra pemasaran unit'],
+ 'WST-06':['PT Hijau Bumi Konsorsium — operator fasilitas'],
+ 'IPP-01':['PT Reduksi Emisi Industri — pengembang proyek','Global Climate Assets Ltd. — calon pembeli unit (Jepang)'],
+ 'IPP-04':['PT Reduksi Emisi Industri — pengembang proyek'],
+ 'IPP-07':['Asia Carbon Exchange Pte. Ltd. — mitra perdagangan unit'],
+ 'IPP-12':['PT Mitra Dekarbonisasi Industri — penyedia teknologi katalis','Koperasi Karya Nitro Cilacap — mitra pemberdayaan pekerja']
+};
+const SDG_META = {3:['Kehidupan Sehat & Sejahtera','#4C9F38'],6:['Air Bersih & Sanitasi Layak','#26BDE2'],7:['Energi Bersih & Terjangkau','#FCC30B'],8:['Pekerjaan Layak & Pertumbuhan Ekonomi','#A21942'],9:['Industri, Inovasi & Infrastruktur','#FD6925'],11:['Kota & Permukiman Berkelanjutan','#FD9D24'],12:['Konsumsi & Produksi Bertanggung Jawab','#BF8B2E'],13:['Penanganan Perubahan Iklim','#3F7E44'],15:['Ekosistem Daratan','#56C02B'],17:['Kemitraan untuk Mencapai Tujuan','#19486A']};
+const NARR = {
+ 'Energy efficiency':{sdg:[7,9,12],
+  d:k=>`Fasilitas ${k.perus} di ${k.kota} beroperasi nyaris tanpa jeda, dan selama bertahun-tahun sebagian besar panas hasil prosesnya terbuang begitu saja ke udara. Proyek ini menangkap kembali panas buangan tersebut dan mengubahnya menjadi energi yang dipakai ulang oleh pabrik itu sendiri. Bagi operator di lantai produksi, dampaknya terasa langsung: suhu ruang kerja turun dan beban kerja peralatan berkurang. Bagi warga di sekitar pagar pabrik, berkurangnya konsumsi bahan bakar berarti berkurangnya asap yang selama ini menjadi keluhan musiman. Bagi iklim, sekitar ${k.emisi} tCO₂e tidak jadi dilepaskan setiap tahun — setara emisi tahunan puluhan ribu sepeda motor di jalanan ${k.kota}.`,
+  a:k=>`Tanpa pendapatan unit karbon, investasi sistem pemulihan panas ini memiliki tingkat pengembalian di bawah ambang investasi internal ${k.perus} (<i>investment barrier</i>). Praktik umum di subsektor ini masih melepas panas buangan ke atmosfer; hanya sebagian kecil fasilitas sejenis di Indonesia yang mengoperasikan teknologi setara, sehingga proyek tidak dapat dikategorikan sebagai <i>common practice</i>. Skenario baseline: pasokan energi dari jaringan dan bahan bakar fosil eksisting.`},
+ 'Fuel switch':{sdg:[7,9,11],
+  d:k=>`Selama satu dekade, tungku ${k.perus} di ${k.kota} dijalankan dengan batubara. Proyek ini mengalihkannya ke gas alam — keputusan yang tidak sederhana karena menuntut perombakan sistem pembakaran dan kepastian pasokan gas jangka panjang. Hasilnya bukan hanya angka: debu halus yang dulu menempel di atap rumah warga sekitar berkurang, dan operator boiler tidak lagi berhadapan dengan penanganan abu setiap hari. Pengurangan emisi diperkirakan ${k.emisi} tCO₂e per tahun.`,
+  a:k=>`Peralihan bahan bakar ini menghadapi <i>investment barrier</i> (biaya modal konversi burner dan jaringan pipa) sekaligus <i>barrier</i> pasokan: harga gas domestik yang lebih tinggi per satuan energi membuat skenario batubara tetap paling ekonomis tanpa insentif karbon. Baseline yang digunakan adalah kelanjutan penggunaan batubara pada efisiensi historis tiga tahun terakhir.`},
+ 'Biomass':{sdg:[7,8,12],
+  d:k=>`Residu produksi ${k.perus} di ${k.kota} dahulu menumpuk dan sebagian dibakar terbuka pada musim kemarau. Proyek ini menjadikannya bahan bakar kogenerasi: limbah yang dulu menjadi masalah kini menyalakan turbin pabrik. Rantai pasok biomassa melibatkan pemasok lokal, sehingga sebagian nilai proyek beredar di ekonomi sekitar. Potensi pengurangan emisi ${k.emisi} tCO₂e per tahun, sekaligus menghilangkan praktik pembakaran terbuka yang selama ini memicu keluhan warga.`,
+  a:k=>`Tanpa pendapatan unit karbon, biaya pengumpulan, pengeringan, dan penanganan biomassa membuat proyek kalah bersaing dengan bahan bakar fosil (<i>investment</i> dan <i>technological barrier</i>). Baseline: pembangkitan energi berbasis bahan bakar fosil dan pembusukan/pembakaran terbuka residu.`},
+ 'Biogas':{sdg:[6,7,12],
+  d:k=>`Kolam limbah ${k.perus} di ${k.kota} pernah menjadi sumber keluhan paling sering dari kampung terdekat: bau yang menyengat saat angin berbalik arah. Proyek ini menutup kolam tersebut, menangkap metana yang selama ini lepas bebas, dan memanfaatkannya sebagai energi. Metana memiliki daya pemanasan puluhan kali lipat karbon dioksida, sehingga penangkapan ini bernilai besar bagi iklim — sekitar ${k.emisi} tCO₂e per tahun — sembari mengembalikan udara yang lebih layak bagi warga sekitar.`,
+  a:k=>`Sistem penutup kolam dan penangkap biogas bukan persyaratan wajib bagi fasilitas sejenis; regulasi hanya mengatur mutu air keluaran, bukan emisi metana (<i>regulatory surplus</i> terpenuhi). Investasi digester tertutup dan sistem pembakaran/pembangkitan tidak layak secara finansial tanpa pendapatan unit karbon. Baseline: pengolahan anaerobik terbuka dengan pelepasan metana ke atmosfer.`},
+ 'Methane avoidance':{sdg:[6,9,12],
+  d:k=>`Instalasi pengolahan air limbah ${k.perus} di ${k.kota} dirancang pada era ketika emisi metana belum diperhitungkan. Proyek ini mengubah rezim pengolahan sehingga metana tidak lagi terbentuk dan terlepas. Perubahannya tampak teknis dan tidak dramatis, tetapi dampaknya nyata: kualitas efluen membaik, keluhan bau berkurang, dan sekitar ${k.emisi} tCO₂e per tahun tidak jadi menambah beban atmosfer.`,
+  a:k=>`Perubahan rezim pengolahan menambah konsumsi energi dan biaya operasi, sehingga tidak akan dilakukan atas dasar kepatuhan semata (<i>investment barrier</i>). Ketentuan lingkungan yang berlaku tidak mewajibkan pengendalian emisi metana dari unit pengolahan air limbah. Baseline: pengolahan anaerobik eksisting.`},
+ 'Landfill gas':{sdg:[3,11,12],
+  d:k=>`Timbunan sampah kawasan industri di ${k.kota} terus tumbuh, dan bersamanya gas metana yang selama ini keluar tanpa kendali — sesekali memicu titik api dan bau yang menjangkau permukiman. Proyek ini memasang sistem penangkapan gas dan pembakaran/pemanfaatan energi. Risiko kebakaran timbunan menurun, kondisi kerja pemulung dan operator membaik, dan sekitar ${k.emisi} tCO₂e per tahun dicegah terlepas ke atmosfer.`,
+  a:k=>`Penangkapan gas TPA tidak diwajibkan bagi fasilitas ini dan menuntut belanja modal signifikan untuk sumur ekstraksi, perpipaan, serta unit pembakaran (<i>investment barrier</i>). Baseline: pelepasan gas TPA secara pasif ke atmosfer, sesuai praktik umum di lokasi sejenis.`},
+ 'Waste':{sdg:[8,11,12],
+  d:k=>`Kawasan industri di ${k.kota} menghasilkan aliran limbah padat yang selama ini berakhir di penimbunan. Proyek pengolahan limbah alternatif ini memilahnya menjadi bahan bakar dan material daur ulang, memindahkan sebagian pekerjaan informal ke pekerjaan formal yang lebih aman. Manfaat iklimnya sekitar ${k.emisi} tCO₂e per tahun, berasal dari metana penimbunan yang tidak jadi terbentuk.`,
+  a:k=>`Biaya pengolahan per ton jauh melampaui tarif penimbunan yang berlaku, sehingga tanpa pendapatan unit karbon operator akan tetap memilih penimbunan (<i>investment barrier</i>, sekaligus bukan <i>common practice</i>). Baseline: penimbunan konvensional tanpa penangkapan gas.`},
+ 'N2O abatement':{sdg:[3,9,12],
+  d:k=>`Yang keluar dari reaktor asam nitrat ${k.perus} di ${k.kota} tidak terlihat dan tidak berbau tajam, tetapi satu ton dinitrogen oksida setara hampir tiga ratus ton karbon dioksida bagi atmosfer — dan gas yang sama ikut menipiskan lapisan ozon. Proyek ini memasang katalis penghancur N₂O di dalam reaktor, sehingga gas dirombak menjadi nitrogen dan oksigen sebelum sempat keluar cerobong. Skalanya besar: sekitar ${k.emisi} tCO₂e per tahun dari satu pabrik saja — salah satu intervensi termurah per ton yang tersedia bagi industri kimia Indonesia.`,
+  a:k=>`Katalis sekunder tidak diwajibkan oleh baku mutu emisi yang berlaku bagi pabrik asam nitrat (<i>regulatory surplus</i>), dan penggantian katalis berkala merupakan biaya operasi murni tanpa manfaat produksi — tidak ada insentif ekonomi selain pendapatan unit karbon (<i>investment barrier</i>). Baseline: emisi N₂O historis pada tingkat operasi normal sesuai pemantauan tiga tahun terakhir.`},
+ 'HFC destruction':{sdg:[3,12,15],
+  d:k=>`Produksi HCFC-22 di ${k.kota} menghasilkan aliran samping HFC-23, gas dengan potensi pemanasan lebih dari sepuluh ribu kali karbon dioksida. Selama bertahun-tahun aliran ini dilepas karena tidak memiliki nilai ekonomi. Proyek ini membakarnya pada insinerator suhu tinggi hingga terurai hampir sempurna. Dampak iklimnya luar biasa besar untuk satu fasilitas: sekitar ${k.emisi} tCO₂e per tahun — setara emisi ratusan ribu rumah tangga.`,
+  a:k=>`Insinerasi HFC-23 tidak menghasilkan produk yang dapat dijual dan menambah biaya energi serta pemeliharaan; tanpa pendapatan unit karbon tidak ada dasar ekonomi untuk mengoperasikannya (<i>investment barrier</i>). Baseline: pelepasan aliran samping HFC-23 ke atmosfer sesuai praktik historis fasilitas.`},
+ 'HFC avoidance':{sdg:[9,12,3],
+  d:k=>`Setiap unit pendingin yang keluar dari lini produksi ${k.perus} di ${k.kota} membawa serta pilihan refrigeran yang akan menempel padanya seumur pakai. Proyek ini mengalihkan produksi ke refrigeran ber-GWP rendah, sehingga kebocoran yang tak terhindarkan di sisi pengguna tidak lagi berdampak besar bagi iklim. Perubahan menuntut penyetelan ulang lini produksi dan pelatihan teknisi purna jual. Estimasi manfaat ${k.emisi} tCO₂e per tahun.`,
+  a:k=>`Refrigeran alternatif berharga lebih mahal dan menuntut modifikasi kompresor serta protokol keselamatan baru (<i>technological</i> dan <i>investment barrier</i>). Regulasi nasional belum mewajibkan peralihan pada segmen produk ini. Baseline: kelanjutan produksi dengan refrigeran ber-GWP tinggi sesuai pangsa pasar historis.`},
+ 'Cement':{sdg:[9,11,12],
+  d:k=>`Sekitar enam puluh persen emisi semen tidak datang dari bahan bakar, melainkan dari batu kapur itu sendiri saat terurai di tanur. Karena itu proyek ${k.perus} di ${k.kota} menyerang sumbernya: menurunkan rasio klinker dan mengganti sebagian bahan baku karbonat dengan material alternatif, termasuk residu industri lain yang selama ini menjadi limbah. Produk tetap memenuhi SNI, tetapi jejak karbon per ton semen turun. Estimasi pengurangan ${k.emisi} tCO₂e per tahun — dan efeknya melekat pada setiap bangunan yang memakainya.`,
+  a:k=>`Penurunan rasio klinker menuntut investasi penggilingan tambahan, jaminan pasokan material substitusi, serta upaya pasar untuk menerima produk semen campur (<i>investment</i>, <i>supply chain</i>, dan <i>prevailing practice barrier</i>). Rasio klinker baseline mengacu pada rata-rata tertimbang produksi fasilitas tiga tahun sebelum proyek.`},
+ 'PFC reduction':{sdg:[9,12,8],
+  d:k=>`Pada smelter aluminium di ${k.kota}, gangguan proses yang disebut <i>anode effect</i> melepaskan perfluorokarbon — gas yang bertahan di atmosfer selama ribuan tahun. Proyek ini memperketat kendali proses dan sistem pemadaman otomatis sehingga frekuensi dan durasi gangguan turun drastis. Selain manfaat iklim sekitar ${k.emisi} tCO₂e per tahun, stabilitas sel elektrolisis membaik dan konsumsi energi per ton logam menurun.`,
+  a:k=>`Sistem kendali proses lanjutan menuntut belanja modal instrumentasi dan pelatihan operator yang tidak dipersyaratkan regulasi (<i>investment barrier</i>). Baseline: frekuensi dan durasi <i>anode effect</i> historis pada periode tiga tahun sebelum implementasi.`}
+};
+function polyOf(kode, lat, lng){
+  let h=0; for(const c of kode) h = (h*31 + c.charCodeAt(0)) % 9973;
+  const r = 0.0045 + (h%7)*0.0006, pts=[];
+  for(let i=0;i<6;i++){ const a = i*Math.PI/3 + (h%17)/17; const rr = r*(0.72 + ((h>>i)%5)/9);
+    pts.push([lat + rr*Math.sin(a)*0.85, lng + rr*Math.cos(a)]); }
+  return pts;
+}
+PROJECTS.forEach(p=>{
+  const kota = (Object.keys(CITY).find(c=>p.lok.includes(c))) || 'Jakarta';
+  const co = CITY[kota] || [-6.2,106.85];
+  p.kota = kota; p.lat = co[0]; p.lng = co[1]; p.poly = polyOf(p.kode, co[0], co[1]);
+  p.prog = PROG_MAP[p.kode] || 'CDM';
+  p.proponen = [p.perus + ' — pemilik fasilitas & pemrakarsa'].concat(KOPRO[p.kode]||[]);
+  const n = NARR[p.tipe] || NARR['Energy efficiency'];
+  const k = {perus:p.perus, kota:p.kota, emisi:p.emisi.toLocaleString('id-ID')};
+  p.desk = n.d(k); p.addl = n.a(k);
+  p.sdg = n.sdg.concat([13]).concat(p.jalur==='OTO'?[17]:[]);
+});
+function metLink(p){
+  const m = p.met.split(' ')[0];
+  if(p.prog==='VERRA') return 'https://verra.org/methodologies/';
+  if(p.prog==='GS') return 'https://globalgoals.goldstandard.org/standards-and-requirements/';
+  if(p.prog==='SPEI') return 'https://srn.menlhk.go.id/';
+  return m.startsWith('AMS') ? 'https://cdm.unfccc.int/methodologies/SSCmethodologies/approved'
+                             : 'https://cdm.unfccc.int/methodologies/PAmethodologies/approved';
+}
+/* ====== users & arsip seed ====== */
+let USERS = [
+ {id:1,nama:'Dewi Setiawati, S.T., M.SE.',nip:'19700412 199503 2 002',peran:'Kepala Pusat Industri Hijau',email:'dewi.setiawati@kemenperin.go.id'},
+ {id:2,nama:'Rr. Sri Gadis Pari Bekti, S.Si., M.Si.',nip:'19850623 201012 2 011',peran:'Pejabat Teknis',email:'srigadis.pb@kemenperin.go.id'},
+ {id:3,nama:'Dimas Prakoso, S.Si.',nip:'19910308 201503 1 007',peran:'Pejabat Teknis',email:'dimas.p@kemenperin.go.id'},
+ {id:4,nama:'Sari Anindita, A.Md.',nip:'19960715 201902 2 003',peran:'Operator Data',email:'sari.a@kemenperin.go.id'},
+ {id:5,nama:'Yoga Firmansyah, S.Kom.',nip:'19930221 201703 1 009',peran:'Administrator',email:'yoga.f@kemenperin.go.id'}
+];
+const ROLES = [
+ {nama:'Kepala Pusat Industri Hijau',desc:'Penerima mandat penandatanganan surat rekomendasi/persetujuan atas nama Menteri Perindustrian (melalui Kepala BSKJI).'},
+ {nama:'Pejabat Teknis',desc:'Telaah substansi permohonan, penyusunan draf surat, permintaan klarifikasi, dan verifikasi kelengkapan berkas.'},
+ {nama:'Operator Data',desc:'Pencatatan awal, unggah/unduh berkas, pemutakhiran status sinkronisasi SRUK–SIINAS.'},
+ {nama:'Administrator',desc:'Mengelola mandat, akun pengguna, parameter SLA, dan integrasi sistem (SRUK, SIINAS, KLH).'}
+];
+const KUASA = [
+ {no:1,nama:'Surat Rekomendasi Penerbitan',pemegang:'Kepala Pusat Industri Hijau'},
+ {no:2,nama:'Surat Rekomendasi Otorisasi',pemegang:'Kepala Pusat Industri Hijau'},
+ {no:3,nama:'Surat Persetujuan Penerbitan',pemegang:'Kepala Pusat Industri Hijau'},
+ {no:4,nama:'Telaah dan Pencatatan Awal',pemegang:'Pejabat Teknis · Operator Data'},
+ {no:5,nama:'Penolakan Permohonan',pemegang:'Kepala Pusat Industri Hijau'},
+ {no:6,nama:'Permintaan Klarifikasi',pemegang:'Kepala Pusat Industri Hijau · Pejabat Teknis'}
+];
+const PERM = [
+ {aksi:'Telaah & pencatatan awal permohonan', r:[1,1,1,0]},
+ {aksi:'Menyusun draf surat keputusan', r:[1,1,0,0]},
+ {aksi:'Menandatangani surat rekomendasi/persetujuan (a.n. Menteri)', r:[1,0,0,0]},
+ {aksi:'Menolak permohonan', r:[1,0,0,0]},
+ {aksi:'Meminta klarifikasi kelengkapan dokumen', r:[1,1,0,0]},
+ {aksi:'Unggah/unduh berkas & pemutakhiran data', r:[1,1,1,1]},
+ {aksi:'Mengelola mandat & pengguna', r:[0,0,0,1]},
+ {aksi:'Mengelola parameter SLA & integrasi SRUK', r:[0,0,0,1]}
+];
+let ARSIP = []; let ARSIP_NO = 341;
+/* ====== helpers ====== */
+const fmt = n => n.toLocaleString('id-ID');
+const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const tglID = d => { const x = (d instanceof Date)? d : new Date(d); return x.getDate()+' '+BULAN[x.getMonth()]+' '+x.getFullYear(); };
+function hariKerja(fromStr, to=TODAY){ // hari kerja Sen–Jum (libur nasional tidak dihitung — catatan prototipe)
+  let d = new Date(fromStr), n = 0;
+  while(d < to){ d.setDate(d.getDate()+1); const w=d.getDay(); if(w!==0 && w!==6) n++; }
+  return n;
+}
+const SLA_HK = 20;
+const mTerkait = p => p.sektor==='IPPU' ? 'Kementerian Perindustrian' : (p.sektor==='Energi' ? 'Kementerian ESDM' : 'Kementerian Lingkungan Hidup');
+const isKemenperin = p => p.sektor==='IPPU';
+const sektorCls = s => s==='IPPU'?'ippu':(s==='Energi'?'energi':'limbah');
+const chipCls = s => s==='IPPU'?'ip':(s==='Energi'?'en':'wa');
+const maxTahap = p => p.jalur==='OTO' ? 16 : 12;
+const stageOf = p => STAGES[p.tahap-1];
+/* proyek "di meja menteri terkait" = tahap keputusan (5, 11, 14) & belum selesai/ditolak */
+const diMejaMenteri = p => !p.selesai && p.status!=='ditolak' && stageOf(p).kep;
+const antreanKemenperin = () => PROJECTS.filter(p => diMejaMenteri(p) && isKemenperin(p));
+const lewatSLA = p => hariKerja(p.masuk) > SLA_HK;
+/* "pihak lain": LVV / SRUK / KLH / pelaku usaha, atau meja kementerian teknis lain */
+const diPihakLain = p => !p.selesai && p.status!=='ditolak' && ( ['LVV','SRUK','KLH','Pelaku Usaha'].includes(stageOf(p).aktor) || (stageOf(p).kep && !isKemenperin(p)) );
+const unitTerbit = p => p.selesai || p.tahap > 12;   // sudah melewati tahap 12 (penerbitan oleh SRUK)
+function jenisSuratUntuk(p){
+  if(p.tahap===5)  return ['pemberitahuan'];
+  if(p.tahap===11) return ['rek-terbit','setuju-terbit'];
+  if(p.tahap===14) return ['rek-oto'];
+  return [];
+}
+const JENIS_SURAT = {
+ 'pemberitahuan':{nama:'Surat Pemberitahuan Penerimaan & Pengakuan Pencatatan', kode:'PPP'},
+ 'rek-terbit':{nama:'Surat Rekomendasi Penerbitan', kode:'RP'},
+ 'setuju-terbit':{nama:'Surat Persetujuan Penerbitan', kode:'SP'},
+ 'rek-oto':{nama:'Surat Rekomendasi Otorisasi', kode:'RO'},
+ 'tolak':{nama:'Surat Penolakan Permohonan', kode:'TP'},
+ 'klarifikasi':{nama:'Surat Permintaan Klarifikasi', kode:'PK'}
+};
+function nomorSurat(kode, d=TODAY){ return 'B/'+(ARSIP_NO++)+'/BSKJI.5/'+kode+'/'+(d.getMonth()+1)+'/'+d.getFullYear(); }
+/* ====== riwayat & berkas (derivasi dari tahap) ====== */
+function riwayat(p){
+  const ev = []; const base = new Date(p.masuk);
+  const done = p.selesai ? p.tahap : p.tahap-1;
+  for(let t=1;t<=done;t++){
+    const d = new Date(base); d.setDate(d.getDate() - (done-t+1)*23);
+    let n = 'Tahap '+t+' selesai — '+STAGES[t-1].nama;
+    if(t===1) n = 'Permohonan masuk — pendaftaran di SRUK (tercatat SIINAS)';
+    if(t===5) n = 'Surat pemberitahuan penerimaan & pengakuan pencatatan diterbitkan';
+    if(t===11) n = 'Rekomendasi/persetujuan penerbitan unit karbon diterbitkan';
+    if(t===12) n = 'Unit karbon offset emisi GRK diterbitkan oleh SRUK';
+    if(t===14) n = 'Rekomendasi otorisasi disampaikan kepada Menteri LH';
+    if(t===15) n = 'Otorisasi Menteri Lingkungan Hidup terbit';
+    if(t===16) n = 'Corresponding adjustment tercatat di SRUK';
+    ev.push({t:tglID(d), n, d:'Aktor: '+STAGES[t-1].aktor});
+  }
+  if(!p.selesai && p.status!=='ditolak'){
+    const s = stageOf(p);
+    let n = 'Sedang berlangsung — Tahap '+p.tahap+': '+s.nama;
+    if(s.kep) n = (isKemenperin(p)?'Menunggu keputusan Kemenperin':'Menunggu keputusan '+mTerkait(p))+' — Tahap '+p.tahap+': '+s.nama;
+    ev.push({t:tglID(p.masuk)+' — sekarang', n, d:'Aktor: '+s.aktor+(s.kep&&isKemenperin(p)?' · SLA '+SLA_HK+' HK':''), now:true});
+  }
+  if(p.status==='ditolak') ev.push({t:tglID(TODAY), n:'Permohonan ditolak oleh Kemenperin', d:'Surat penolakan tercatat di Arsip', now:true});
+  if(p.klarifikasi) ev.push({t:tglID(TODAY), n:'Permintaan klarifikasi dikirim ke pelaku usaha', d:'Menunggu kelengkapan dokumen — perhitungan SLA dijeda', now:true});
+  return ev;
+}
+function berkas(p){ const t=p.tahap + (p.selesai?1:0); return [
+ {nama:'Dokumen Rencana Aksi Mitigasi (DRAM)', file:'DRAM_'+p.kode+'.pdf', ada:t>=4},
+ {nama:'Laporan Validasi', file:'LapVal_'+p.kode+'.pdf', ada:t>=7},
+ {nama:'Dokumen Laporan Capaian Aksi Mitigasi (LCAM)', file:'LCAM_'+p.kode+'.pdf', ada:t>=8},
+ {nama:'Laporan Verifikasi', file:'LapVer_'+p.kode+'.pdf', ada:t>=10},
+ {nama:'Berkas Geospasial Lokasi Proyek', file:p.kode+'.geojson', ada:t>=2},
+ {nama:'Permohonan Penerbitan Unit Karbon', file:'Permohonan_'+p.kode+'.pdf', ada:t>=11}
+];}
+/* ====== generator surat (kop PIH) ====== */
+function kopHTML(){ return `
+ <div class="kop">
+   <svg class="kop-emb" viewBox="0 0 64 64"><circle cx="32" cy="32" r="29" fill="none" stroke="#111" stroke-width="2.5"/><circle cx="32" cy="32" r="22" fill="none" stroke="#111" stroke-width="1"/><path d="M32 14c-7 5.5-11 11-11 17.5a11 11 0 0 0 22 0C43 25 39 19.5 32 14Z" fill="none" stroke="#111" stroke-width="2"/><path d="M32 22v22" stroke="#111" stroke-width="1.6"/><path d="M32 40c0-4.5 3.5-6 6-7M32 35c0-4-3-5.5-5-6.5" stroke="#111" stroke-width="1.4" fill="none"/></svg>
+   <div class="kop-tx">
+     <div class="l1">KEMENTERIAN PERINDUSTRIAN REPUBLIK INDONESIA</div>
+     <div class="l2">BADAN STANDARDISASI DAN KEBIJAKAN JASA INDUSTRI</div>
+     <div class="l3">PUSAT INDUSTRI HIJAU</div>
+     <div class="l4">Jalan Jenderal Gatot Subroto Kav. 52–53, Jakarta Selatan 12950 · Telepon (021) 5255509 · www.kemenperin.go.id</div>
+   </div>
+ </div><div class="kop-line2"></div>`;
+}
+function ttdHTML(){ return `
+ <div class="ttd">
+   <div class="an">a.n. Menteri Perindustrian<br>Kepala Pusat Industri Hijau,</div>
+   <div class="gap"><div class="stamp">PUSAT<br>INDUSTRI<br>HIJAU</div></div>
+   <div style="font-weight:bold;text-decoration:underline">Dewi Setiawati, S.T., M.SE.</div>
+   <div style="font-size:12px">NIP 19700412 199503 2 002</div>
+ </div>
+ <p style="font-size:11px;margin-top:22px">Tembusan:<br>1. Menteri Perindustrian (sebagai laporan);<br>2. Direktur Jenderal terkait di lingkungan Kementerian Perindustrian;<br>3. Sekretariat SRUK, Kementerian Lingkungan Hidup.</p>`;
+}
+function isiSurat(jenis, p, pertimbangan, nomor, tgl){
+  const J = JENIS_SURAT[jenis];
+  const meta = `<table class="s-meta"><tr><td>Nomor</td><td>: ${nomor}</td></tr><tr><td>Sifat</td><td>: Segera</td></tr><tr><td>Lampiran</td><td>: 1 (satu) berkas</td></tr><tr><td>Hal</td><td>: <b>${J.nama} — ${p.nama}</b></td></tr></table>
+  <p style="margin-bottom:16px">Yth. ${jenis==='rek-oto' ? 'Menteri Lingkungan Hidup<br>melalui Sekretariat SRUK<br>di Jakarta' : 'Direksi '+p.perus+'<br>melalui Sistem Registri Unit Karbon (SRUK)<br>di tempat'}</p>`;
+  const dasar = `<p>Menindaklanjuti permohonan yang tercatat pada Sistem Registri Unit Karbon (SRUK) dan terinformasikan melalui SIINAS untuk kegiatan aksi mitigasi <b>${p.nama}</b> (kode registri <b>${p.kode}</b>, NIB ${p.nib}), dengan metodologi ${p.met}, potensi pengurangan emisi ±${fmt(p.emisi)} tCO₂e/tahun, berlokasi di ${p.lok}, bersama ini disampaikan hal-hal sebagai berikut:</p>`;
+  let inti='';
+  if(jenis==='pemberitahuan') inti = `<ol><li>Kementerian Perindustrian telah menerima dan <b>mengakui pencatatan aksi mitigasi perubahan iklim</b> atas kegiatan dimaksud sesuai Skema Sertifikasi Pengurangan Emisi Indonesia.</li><li>Pelaku usaha dapat melanjutkan proses validasi Dokumen Rencana Aksi Mitigasi (DRAM) oleh Lembaga Validasi dan Verifikasi (LVV) terakreditasi.</li></ol>`;
+  if(jenis==='rek-terbit') inti = `<ol><li>Berdasarkan telaah atas DRAM, Laporan Validasi, LCAM, dan Laporan Verifikasi, Kementerian Perindustrian <b>memberikan rekomendasi penerbitan Unit Karbon Offset Emisi GRK</b> atas kegiatan dimaksud.</li><li>Penerbitan unit karbon dilaksanakan oleh SRUK sesuai ketentuan peraturan perundang-undangan.</li></ol>`;
+  if(jenis==='setuju-terbit') inti = `<ol><li>Kementerian Perindustrian <b>menyetujui penerbitan Unit Karbon Offset Emisi GRK</b> atas kegiatan dimaksud berdasarkan hasil telaah dokumen MRV yang lengkap dan sesuai.</li><li>Penerbitan dan pencatatan unit karbon dilaksanakan oleh SRUK.</li></ol>`;
+  if(jenis==='rek-oto') inti = `<ol><li>Kementerian Perindustrian menyampaikan <b>rekomendasi otorisasi Unit Karbon Offset Emisi GRK</b> atas kegiatan dimaksud untuk keperluan perdagangan karbon luar negeri.</li><li>Pemberian otorisasi dan pencatatan <i>corresponding adjustment</i> selanjutnya menjadi kewenangan Menteri Lingkungan Hidup melalui SRUK.</li></ol>`;
+  if(jenis==='tolak') inti = `<ol><li>Setelah dilakukan telaah, Kementerian Perindustrian <b>menolak permohonan</b> atas kegiatan dimaksud.</li><li>Pelaku usaha dapat mengajukan permohonan kembali setelah memenuhi ketentuan yang dipersyaratkan.</li></ol>`;
+  if(jenis==='klarifikasi') inti = `<ol><li>Berdasarkan telaah kelengkapan, dokumen permohonan <b>belum dapat diproses</b> dan memerlukan klarifikasi/perbaikan.</li><li>Pelaku usaha diminta menyampaikan kelengkapan dimaksud melalui SRUK paling lambat 10 (sepuluh) hari kerja sejak surat ini diterima. Perhitungan SLA dijeda sampai kelengkapan diterima.</li></ol>`;
+  const timbang = pertimbangan ? `<p><b>Pertimbangan keputusan:</b> ${pertimbangan}</p>` : '';
+  return `${kopHTML()}<div style="text-align:right;font-size:13px;margin-bottom:6px">Jakarta, ${tglID(tgl)}</div>${meta}${dasar}${inti}${timbang}<p>Demikian disampaikan untuk dapat dipergunakan sebagaimana mestinya.</p>${ttdHTML()}`;
+}
+function pushArsip(jenis, p, pertimbangan, tglStr){
+  const tgl = tglStr? new Date(tglStr) : TODAY;
+  const nomor = nomorSurat(JENIS_SURAT[jenis].kode, tgl);
+  ARSIP.unshift({nomor, jenis, jnama:JENIS_SURAT[jenis].nama, proyek:p.kode, pnama:p.nama, perus:p.perus, tgl:tglID(tgl), body:isiSurat(jenis,p,pertimbangan,nomor,tgl)});
+  return nomor;
+}
+/* seed arsip: surat-surat yang "sudah pernah terbit" secara historis */
+(function(){ ARSIP_NO = 287;
+  const g=k=>PROJECTS.find(p=>p.kode===k);
+  pushArsip('pemberitahuan', g('IPP-01'), 'Dokumen pendaftaran dan DRAM lengkap serta sesuai ruang lingkup kewenangan pembinaan industri.', '2026-02-12');
+  pushArsip('pemberitahuan', g('IPP-04'), 'Aksi mitigasi tercatat lengkap pada SRUK; ruang lingkup sesuai subsektor IPPU industri kimia.', '2026-03-03');
+  pushArsip('setuju-terbit', g('IPP-03'), 'Laporan verifikasi menyatakan capaian pengurangan emisi wajar dan sesuai metodologi AM0021.', '2026-06-24');
+  pushArsip('rek-terbit', g('IPP-02'), 'Seluruh dokumen MRV lengkap; hasil verifikasi LVV konsisten dengan LCAM.', '2026-07-15');
+  pushArsip('rek-oto', g('IPP-07'), 'Unit karbon telah terbit di SRUK dan memenuhi persyaratan otorisasi untuk perdagangan luar negeri.', '2026-07-28');
+  pushArsip('klarifikasi', g('IPP-05'), 'Berkas geospasial belum memuat batas poligon fasilitas sesuai format yang dipersyaratkan.', '2026-08-04');
+  ARSIP_NO = 341;
+})();
+/* =====================================================================
+   RENDERING
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+let PAGE='ringkasan', FILTER='ALL', KEP_SEL=null, KEP_JENIS=null;
+const TITLES={ringkasan:['Ringkasan Eksekutif','Ringkasan'],progress:['Progress Kegiatan','Progress Kegiatan'],keputusan:['Keputusan','Keputusan'],arsip:['Arsip Surat','Arsip'],mandat:['Kewenangan Tanda Tangan','Kewenangan TTD'],pengguna:['Pengguna & Peran','Pengguna & Peran']};
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._x); t._x=setTimeout(()=>t.classList.remove('show'),2600); }
+function go(page){ PAGE=page; document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.page===page)); $('#tb-title').textContent=TITLES[page][0]; $('#tb-crumb').textContent='SIINAS / Offset Karbon / '+TITLES[page][1]; render(); window.scrollTo({top:0}); }
+document.querySelectorAll('#nav button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.page)));
+const FL = () => FILTER==='ALL' ? PROJECTS : PROJECTS.filter(p=>p.sektor===FILTER);
+function chipsHTML(){
+  const opts=[['ALL','Semua Sektor','30 proyek terpantau'],['IPPU','IPPU','Kewenangan Kemenperin'],['Energi','Energi','Menteri terkait: ESDM'],['Limbah','Limbah','Menteri terkait: KLH']];
+  return `<div class="chips">${opts.map(o=>`<button class="chip ${FILTER===o[0]?'on':''}" onclick="setFilter('${o[0]}')">${o[1]}<small>${o[2]}</small></button>`).join('')}</div>`;
+}
+function setFilter(f){ FILTER=f; render(); }
+function slaBadge(p){
+  if(!diMejaMenteri(p)) return '';
+  const hk=hariKerja(p.masuk);
+  if(p.klarifikasi) return `<span class="tag gray">SLA dijeda — klarifikasi</span>`;
+  return hk>SLA_HK ? `<span class="tag red">Lewat SLA · ${hk} HK</span>` : `<span class="tag gold">HK ke-${hk} / ${SLA_HK}</span>`;
+}
+function posisiLabel(p){
+  if(p.status==='ditolak') return '<span class="tag red">Ditolak</span>';
+  if(p.selesai) return '<span class="tag green">Selesai</span>';
+  const s=stageOf(p);
+  if(s.kep) return isKemenperin(p)? '<span class="tag gold">Di meja Kemenperin</span>' : `<span class="tag gray">Di meja ${mTerkait(p).replace('Kementerian ','')}</span>`;
+  return `<span class="tag gray">${s.aktor}</span>`;
+}
+/* ---------- RINGKASAN ---------- */
+function renderRingkasan(){
+  const all=FL();
+  const antre = all.filter(p=>diMejaMenteri(p)&&isKemenperin(p));
+  const antreLewat = antre.filter(lewatSLA);
+  const lain = all.filter(diPihakLain);
+  const aktif = all.filter(p=>!p.selesai&&p.status!=='ditolak');
+  const potensi = aktif.reduce((a,p)=>a+p.emisi,0);
+  const terbit = all.filter(p=>unitTerbit(p)&&p.status!=='ditolak').reduce((a,p)=>a+p.emisi,0);
+  const bySek = s => PROJECTS.filter(p=>p.sektor===s&&p.status!=='ditolak');
+  const potSek = s => bySek(s).filter(p=>!p.selesai).reduce((a,p)=>a+p.emisi,0);
+  const maxSek = Math.max(potSek('IPPU'),potSek('Energi'),potSek('Limbah'),1);
+  const barRow=(s,c)=>`<div class="row"><span>${s} <span style="color:#93b5a6">(${bySek(s).length})</span></span><div class="bar"><i style="width:${Math.round(potSek(s)/maxSek*100)}%;background:${c}"></i></div><span class="v">${fmt(potSek(s))}</span></div>`;
+  const rows = all.map(p=>`
+   <tr class="click" onclick="openProject('${p.kode}','umum')">
+    <td class="mono" style="font-size:12px">${p.kode}</td>
+    <td><div class="pname">${p.nama}</div><div class="pcomp">${p.perus} · ${p.lok}</div></td>
+    <td><span class="tag ${sektorCls(p.sektor)}">${p.sektor}</span></td>
+    <td class="stagecell">${p.selesai?'<b>16/16</b> selesai':(p.status==='ditolak'?'—':`<b>${p.tahap}</b>/${maxTahap(p)} · ${stageOf(p).nama.length>44?stageOf(p).nama.slice(0,44)+'…':stageOf(p).nama}`)}</td>
+    <td>${p.jalur==='OTO'?'<span class="tag oto">Otorisasi</span>':'<span class="tag gray">Non-Otorisasi</span>'}</td>
+    <td>${posisiLabel(p)} ${slaBadge(p)} ${p.klarifikasi&&!diMejaMenteri(p)?'<span class="tag gray">Klarifikasi</span>':''}</td>
+    <td class="num" style="text-align:right">${fmt(p.emisi)}</td>
+   </tr>`).join('');
+  $('#view').innerHTML = `
+   ${chipsHTML()}
+   <div class="kpis">
+    <div class="kpi gold-b"><div class="k-label">Menunggu Keputusan Kemenperin</div><div class="k-val">${antre.length}</div><div class="k-sub">Berkas di meja PIH (tahap 5 · 11 · 14)${FILTER!=='ALL'&&FILTER!=='IPPU'?' — sektor ini di kewenangan '+ (FILTER==='Energi'?'ESDM':'KLH'):''}</div></div>
+    <div class="kpi ${antreLewat.length?'alert':''}"><div class="k-label">Melewati SLA ${SLA_HK} Hari Kerja</div><div class="k-val">${antreLewat.length}</div><div class="k-sub">${antreLewat.length?antreLewat.map(p=>p.kode+' ('+hariKerja(p.masuk)+' HK)').join(' · '):'Seluruh antrean masih dalam SLA'}</div></div>
+    <div class="kpi"><div class="k-label">Berjalan di Pihak Lain</div><div class="k-val">${lain.length}</div><div class="k-sub">LVV · SRUK · KLH · pelaku usaha · kementerian teknis lain</div></div>
+    <div class="kpi"><div class="k-label">Potensi Unit Karbon Berproses</div><div class="k-val" style="font-size:24px;margin-top:5px">${fmt(potensi)}</div><div class="k-sub">tCO₂e/tahun — akumulasi proyek aktif${FILTER!=='ALL'?' (sektor '+FILTER+')':''}</div></div>
+   </div>
+   <div class="bigbox">
+     <div><div class="b-label">Total Potensi Unit Karbon</div><div class="b-val">${fmt(PROJECTS.filter(p=>!p.selesai&&p.status!=='ditolak').reduce((a,p)=>a+p.emisi,0))}</div><div class="b-unit">tCO₂e/tahun · seluruh proyek berproses</div></div>
+     <div><div class="b-label">Unit Karbon Terbit Kumulatif</div><div class="b-val">${fmt(PROJECTS.filter(p=>unitTerbit(p)&&p.status!=='ditolak').reduce((a,p)=>a+p.emisi,0))}</div><div class="b-unit">tCO₂e · proyek yang telah melewati penerbitan SRUK</div></div>
+     <div class="brk"><div class="b-label">Potensi per Tipe Proyek</div>${barRow('IPPU','#a99cf0')}${barRow('Energi','#f0b35e')}${barRow('Limbah','#63c3dd')}</div>
+   </div>
+   <div class="card">
+     <div class="pad" style="border-bottom:1px solid var(--line)"><h3 class="sec">Daftar Proyek ${FILTER==='ALL'?'':'— Sektor '+FILTER}</h3><p class="hint" style="margin:0">Klik baris untuk membuka informasi proyek (Informasi Umum · Berkas · Riwayat).</p></div>
+     <div style="overflow-x:auto"><table class="list"><thead><tr><th>Kode</th><th>Proyek</th><th>Sektor</th><th>Tahapan Saat Ini</th><th>Jalur</th><th>Posisi Berkas</th><th style="text-align:right">Potensi (tCO₂e/thn)</th></tr></thead><tbody>${rows}</tbody></table></div>
+   </div>`;
+}
+/* ---------- PROGRESS ---------- */
+let STG_OPEN = {};
+function toggleStage(n){ STG_OPEN[n]=!STG_OPEN[n]; render(); }
+function stageCard(s){
+  const here = FL().filter(p=>!p.selesai && p.status!=='ditolak' && p.tahap===s.n);
+  const open = !!STG_OPEN[s.n];
+  const shown = open ? here : here.slice(0,4);
+  const row = p=>{ const t = p.nama.split(' — ')[0];
+    return `<div class="prow ${chipCls(p.sektor)}" onclick="openProject('${p.kode}','umum')" title="Klik untuk membuka informasi ${p.kode} — ${p.nama}"><span class="pk">${p.kode}</span><span class="pt">${t}</span><span class="ar">›</span></div>`;};
+  const more = here.length>4 ? `<button class="more-btn" onclick="toggleStage(${s.n})">${open?'Tampilkan lebih sedikit ▲':'Lihat '+(here.length-4)+' proyek lainnya ▼'}</button>` : '';
+  const chips = shown.map(row).join('') + more;
+  const kepBtn = s.kep ? `<button class="btn sm warn kbtn" onclick="go('keputusan')">Buka Keputusan →</button>` : '';
+  return `<div class="stg ${s.kep?'kep':''} ${s.oto?'oto-s':''}">
+    <div class="s-top"><div class="s-n">${s.n}</div><div><div class="s-name">${s.nama}</div><div class="s-actor">Aktor: ${s.aktor}${s.kep?' · titik keputusan':''}</div></div><div class="s-count ${here.length?'has':''}">${here.length}</div></div>
+    <div class="s-projects">${chips||'<span class="s-empty">Tidak ada proyek pada tahap ini</span>'}</div>${kepBtn}</div>`;
+}
+function renderProgress(){
+  const all=FL(); const non=all.filter(p=>p.jalur==='NON'), oto=all.filter(p=>p.jalur==='OTO');
+  const done=all.filter(p=>p.selesai);
+  $('#view').innerHTML = `
+   ${chipsHTML()}
+   <div class="pipe-legend"><span><span class="dotm"></span> Tahapan proses (SRUK / LVV / pelaku usaha)</span><span><span class="dotk"></span> Titik keputusan menteri terkait — tahap 5, 11, 14</span><span><span class="doto"></span> Tahapan jalur otorisasi (13–16)</span><span class="mono" style="font-size:11px">Non-Otorisasi: ${non.length} proyek · 12 tahapan &nbsp;|&nbsp; Otorisasi: ${oto.length} proyek · 16 tahapan &nbsp;|&nbsp; Selesai: ${done.length}</span></div>
+   <div class="lane-title">Jalur Pendaftaran Proyek <span class="ln">TAHAP 1–4 · pendaftaran s.d. penyampaian DRAM/DPP di SRUK</span></div>
+   <div class="pipe">${STAGES.slice(0,4).map(stageCard).join('')}</div>
+   <div class="lane-title">Proses MRV &amp; Penerbitan Unit Karbon <span class="ln">TAHAP 5–12 · akhir jalur Non-Otorisasi pada tahap 12</span></div>
+   <div class="pipe">${STAGES.slice(4,12).map(stageCard).join('')}</div>
+   <div class="fork"><div class="fline"></div><div class="flabel">CABANG OPSIONAL — JALUR OTORISASI (perdagangan karbon internasional)</div><div class="fline"></div></div>
+   <div class="oto-zone">
+     <div class="pipe">${STAGES.slice(12,16).map(stageCard).join('')}</div>
+     <div class="oto-note">Hanya dilalui proyek berjalur Otorisasi (${oto.length} proyek). Tahap 14 merupakan titik keputusan Kemenperin; pemberian otorisasi dan pencatatan <i>corresponding adjustment</i> berada pada Menteri Lingkungan Hidup melalui SRUK.</div>
+   </div>
+   <div class="notice-int">Catatan: proyek berstatus "Selesai" (${done.map(p=>p.kode).join(', ')||'—'}) telah menuntaskan tahap 16 termasuk pencatatan corresponding adjustment, sehingga tidak ditampilkan pada kartu tahapan.</div>`;
+}
+/* ---------- KEPUTUSAN ---------- */
+function renderKeputusan(){
+  const antre = antreanKemenperin();
+  const list = antre.map(p=>{const hk=hariKerja(p.masuk);const pct=Math.min(100,Math.round(hk/SLA_HK*100));
+    return `<div class="krow ${KEP_SEL===p.kode?'on':''}" onclick="pilihKeputusan('${p.kode}')">
+      <div class="kr-top"><span class="mono" style="font-size:11.5px">${p.kode}</span><span class="tag ${sektorCls(p.sektor)}">${p.sektor}</span><span class="tag gold">Tahap ${p.tahap}</span>${p.klarifikasi?'<span class="tag gray">Klarifikasi</span>':''}</div>
+      <div class="kr-name">${p.nama}</div><div class="kr-sub">${p.perus} · masuk meja ${tglID(p.masuk)}</div>
+      <div class="kr-sla"><span class="mono">${hk} HK</span><div class="sla-bar"><i style="width:${pct}%;background:${hk>SLA_HK?'var(--red)':'var(--pine-2)'}"></i></div><span style="color:${hk>SLA_HK?'var(--red)':'var(--ink-3)'};font-weight:700">${hk>SLA_HK?'LEWAT SLA':'SLA '+SLA_HK+' HK'}</span></div></div>`;}).join('');
+  const p = antre.find(x=>x.kode===KEP_SEL);
+  let panel = `<div class="empty">Pilih berkas pada daftar di kiri untuk menyusun keputusan.<br><span style="font-size:11.5px">Halaman ini hanya memuat proyek dalam kewenangan Kemenperin (subsektor IPPU) pada tahap 5, 11, atau 14.</span></div>`;
+  if(p){
+    const jl = jenisSuratUntuk(p); if(!KEP_JENIS||!jl.includes(KEP_JENIS)) KEP_JENIS=jl[0];
+    const radios = jl.map(j=>`<label class="rc ${KEP_JENIS===j?'sel':''}"><input type="radio" name="jns" ${KEP_JENIS===j?'checked':''} onchange="setJenis('${j}')"><span><b>${JENIS_SURAT[j].nama}</b><br><span style="color:var(--ink-2)">${j==='rek-terbit'?'Rekomendasi kepada SRUK untuk menerbitkan unit karbon.':j==='setuju-terbit'?'Persetujuan langsung penerbitan unit karbon.':j==='rek-oto'?'Rekomendasi otorisasi disampaikan kepada Menteri LH.':'Menyatakan permohonan diterima dan aksi mitigasi diakui tercatat; pelaku usaha dapat lanjut ke validasi DRAM oleh LVV.'}</span></span></label>`).join('');
+    const nomorPrev='B/'+ARSIP_NO+'/BSKJI.5/'+JENIS_SURAT[KEP_JENIS].kode+'/8/2026';
+    panel = `
+     <div class="card pad" style="margin-bottom:14px">
+       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px"><h3 class="sec" style="margin:0">${p.nama}</h3>${slaBadge(p)}</div>
+       <p class="hint" style="margin-bottom:10px">${p.perus} · Tahap ${p.tahap}: ${stageOf(p).nama}</p>
+       <button class="btn sm" onclick="openProject('${p.kode}','umum')">Informasi Umum</button>
+       <button class="btn sm" onclick="openProject('${p.kode}','berkas')">Berkas</button>
+       <button class="btn sm" onclick="openProject('${p.kode}','riwayat')">Riwayat</button>
+     </div>
+     <div class="card pad" style="margin-bottom:14px">
+       <div class="form-row"><label>Jenis Surat</label><div class="radio-cards">${radios}</div></div>
+       <div class="two-col"><div class="form-row"><label>Nomor Surat (otomatis)</label><input class="mono" value="${nomorPrev}" readonly></div>
+       <div class="form-row"><label>Tanggal</label><input value="${tglID(TODAY)}" readonly></div></div>
+       <div class="form-row"><label>Pertimbangan Keputusan (dimuat dalam badan surat)</label><textarea id="timbang" placeholder="Contoh: seluruh dokumen MRV lengkap; hasil verifikasi LVV konsisten dengan LCAM…"></textarea></div>
+       <div class="act-row">
+         <button class="btn pri" onclick="aksiKeputusan('terbit')">Susun &amp; Terbitkan Surat</button>
+         <button class="btn warn" onclick="aksiKeputusan('klarifikasi')">Minta Klarifikasi</button>
+         <button class="btn dang" onclick="aksiKeputusan('tolak')">Tolak Permohonan</button>
+       </div>
+       <div class="notice-int">Surat terbit atas nama Menteri Perindustrian sesuai mandat aktif (lihat halaman Kewenangan Tanda Tangan). Salinan otomatis terkirim ke SRUK dan tercatat di Arsip.</div>
+     </div>
+     <div class="surat-wrap"><div class="surat">${isiSurat(KEP_JENIS,p,'<i>[pertimbangan keputusan akan dimuat di sini]</i>',nomorPrev,TODAY)}</div><div class="draftmark"><span>DRAF</span></div></div>`;
+  }
+  $('#view').innerHTML = `
+   <p class="hint">Daftar proyek kewenangan Kemenperin yang menunggu tindak lanjut PIH. SLA layanan: ${SLA_HK} hari kerja sejak berkas masuk meja.</p>
+   <div class="kep-grid"><div class="klist">${list||'<div class="empty">Tidak ada berkas menunggu keputusan.</div>'}</div><div>${panel}</div></div>`;
+}
+function pilihKeputusan(k){ KEP_SEL=k; KEP_JENIS=null; render(); }
+function setJenis(j){ KEP_JENIS=j; render(); }
+function aksiKeputusan(aksi){
+  const p = PROJECTS.find(x=>x.kode===KEP_SEL); if(!p) return;
+  const timbang = ($('#timbang')?.value||'').trim();
+  if(!timbang){ toast('Isi kotak pertimbangan keputusan terlebih dahulu.'); $('#timbang')?.focus(); return; }
+  let jenis = aksi==='terbit'? KEP_JENIS : aksi;
+  const nomor = pushArsip(jenis, p, timbang);
+  if(aksi==='terbit'){ p.klarifikasi=false; p.tahap += 1; if(p.tahap>maxTahap(p)){p.selesai=true;} toast(JENIS_SURAT[jenis].nama+' '+nomor+' terbit — status proyek maju ke tahap '+ (p.selesai?'selesai':p.tahap)+'.'); }
+  if(aksi==='tolak'){ p.status='ditolak'; toast('Permohonan '+p.kode+' ditolak. Surat penolakan tercatat di Arsip.'); }
+  if(aksi==='klarifikasi'){ p.klarifikasi=true; toast('Permintaan klarifikasi '+p.kode+' terkirim ke pelaku usaha via SRUK. SLA dijeda.'); }
+  KEP_SEL = (aksi==='klarifikasi')? p.kode : null; KEP_JENIS=null; render();
+}
+/* ---------- ARSIP ---------- */
+let ARSIP_Q='';
+function renderArsip(){
+  const q=ARSIP_Q.toLowerCase();
+  const rows = ARSIP.filter(a=>!q || (a.nomor+a.jnama+a.pnama+a.perus+a.proyek).toLowerCase().includes(q)).map((a,i)=>`
+   <tr class="click arsip-row" onclick="bacaSurat(${ARSIP.indexOf(a)})"><td class="mono" style="font-size:12px">${a.nomor}</td><td><span class="aj">${a.jnama}</span></td><td><div class="pname" style="font-size:12.5px">${a.pnama}</div><div class="pcomp">${a.perus} · ${a.proyek}</div></td><td class="mono" style="font-size:12px;white-space:nowrap">${a.tgl}</td></tr>`).join('');
+  $('#view').innerHTML = `
+   <div class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:220px"><h3 class="sec">Arsip Surat Terbit</h3><p class="hint" style="margin:0">${ARSIP.length} surat. Klik untuk membaca isi surat.</p></div><input placeholder="Cari nomor, jenis, atau nama proyek…" style="border:1px solid var(--line);border-radius:8px;padding:9px 12px;min-width:260px" value="${ARSIP_Q}" oninput="ARSIP_Q=this.value;render()"></div>
+   <div style="overflow-x:auto"><table class="list"><thead><tr><th>Nomor Surat</th><th>Jenis</th><th>Proyek</th><th>Tanggal</th></tr></thead><tbody>${rows||'<tr><td colspan="4" style="text-align:center;color:var(--ink-3);padding:26px">Tidak ada surat yang cocok.</td></tr>'}</tbody></table></div></div>`;
+}
+function bacaSurat(i){ const a=ARSIP[i];
+  $('#modal').innerHTML = `<div class="m-head"><div><div class="m-title">${a.jnama}</div><div class="m-sub mono">${a.nomor} · ${a.tgl}</div></div><button class="x" onclick="closeModal()">✕</button></div><div class="m-body"><div class="surat">${a.body}</div></div>`;
+  $('#overlay').classList.add('open');
+}
+/* ---------- MANDAT ---------- */
+function renderMandat(){
+  const rows = KUASA.map(k=>`<tr><td>${k.no}</td><td style="font-weight:700">${k.nama}</td><td>${k.pemegang}</td><td><span class="tag green">Aktif</span></td></tr>`).join('');
+  const suratMandat = `${kopHTML()}
+   <h4 class="s-jenis">SURAT MANDAT</h4><div class="s-no">Nomor: 148/M-IND/SM/1/2026</div>
+   <p>Dalam rangka kelancaran pelaksanaan tugas pelayanan persetujuan dan pemantauan proyek offset karbon sektor industri melalui SIINAS, Menteri Perindustrian memberikan <b>mandat</b> kepada:</p>
+   <table class="s-meta" style="margin-left:22px"><tr><td>Nama</td><td>: Dewi Setiawati, S.T., M.SE.</td></tr><tr><td>NIP</td><td>: 19700412 199503 2 002</td></tr><tr><td>Jabatan</td><td>: Kepala Pusat Industri Hijau, Badan Standardisasi dan Kebijakan Jasa Industri</td></tr></table>
+   <p>untuk dan atas nama Menteri Perindustrian menandatangani serta menindaklanjuti:</p>
+   <ol><li>Surat Rekomendasi Penerbitan Unit Karbon Offset Emisi GRK;</li><li>Surat Rekomendasi Otorisasi Unit Karbon Offset Emisi GRK;</li><li>Surat Persetujuan Penerbitan Unit Karbon Offset Emisi GRK;</li><li>Telaah dan pencatatan awal permohonan;</li><li>Penolakan permohonan;</li><li>Permintaan klarifikasi kelengkapan dokumen.</li></ol>
+   <p>Pemberian mandat ini <b>tidak mengalihkan tanggung jawab dan tanggung gugat</b>; tanggung jawab hukum tetap melekat pada Menteri Perindustrian selaku pemberi mandat. Penerima mandat wajib melaporkan pelaksanaan mandat secara berkala.</p>
+   <p>Mandat berlaku sejak tanggal ditetapkan sampai dengan dicabutnya surat ini.</p>
+   <div class="ttd"><div class="an">Ditetapkan di Jakarta<br>pada tanggal 12 Januari 2026<br><b>Menteri Perindustrian,</b></div><div class="gap"></div><div style="font-weight:bold;text-decoration:underline">[Nama Menteri Perindustrian]</div></div>`;
+  $('#view').innerHTML = `
+   <div class="legal-note"><b>Pelimpahan berbentuk mandat — bukan delegasi.</b>Wewenang dijalankan untuk dan atas nama Menteri Perindustrian; tanggung jawab dan tanggung gugat hukum tetap melekat pada Menteri Perindustrian. Setiap surat yang terbit dari halaman Keputusan mencantumkan frasa "a.n. Menteri Perindustrian".</div>
+   <div class="mandat-grid">
+     <div><div class="card" style="margin-bottom:14px"><div class="pad" style="border-bottom:1px solid var(--line)"><h3 class="sec">Kuasa Khusus Aktif</h3><p class="hint" style="margin:0">Pemetaan kuasa penandatanganan per jenis tindakan (basis RBAC akun admin PIH).</p></div>
+     <div style="overflow-x:auto"><table class="list kuasa-tb"><thead><tr><th>No</th><th>Jenis Tindakan</th><th>Pemegang Kuasa</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+     <div class="card pad"><h3 class="sec">Ketentuan Pelaksanaan</h3><p class="hint" style="margin-bottom:8px">Ringkasan aturan main mandat pada modul ini.</p>
+     <ul style="font-size:12.5px;color:var(--ink-2);margin-left:18px;line-height:1.7"><li>Penandatanganan surat keluar hanya dapat dieksekusi oleh akun berperan <b>Kepala Pusat Industri Hijau</b>.</li><li>Pejabat Teknis menyiapkan draf dan dapat mengirim permintaan klarifikasi.</li><li>Perubahan pemegang kuasa dilakukan Administrator dan tercatat pada log audit.</li><li>Bila mandat dicabut, seluruh tombol tindak lanjut pada halaman Keputusan otomatis nonaktif.</li></ul></div></div>
+     <div class="card pad"><h3 class="sec" style="margin-bottom:10px">Surat Mandat Aktif</h3><div class="surat" style="padding:26px 30px">${suratMandat}</div></div>
+   </div>`;
+}
+/* ---------- PENGGUNA ---------- */
+function renderPengguna(){
+  const cnt = r => USERS.filter(u=>u.peran===r).length;
+  const cards = ROLES.map(r=>`<div class="role-c"><div class="r-n">${r.nama}</div><div class="r-d">${r.desc}</div><div class="r-c">${cnt(r.nama)} akun aktif</div></div>`).join('');
+  const rows = USERS.map(u=>`<tr><td><div class="pname">${u.nama}</div><div class="pcomp mono">NIP ${u.nip}</div></td><td>${u.email}</td><td><select onchange="ubahPeran(${u.id},this.value)" style="border:1px solid var(--line);border-radius:7px;padding:6px 8px">${ROLES.map(r=>`<option ${u.peran===r.nama?'selected':''}>${r.nama}</option>`).join('')}</select></td><td><button class="btn sm dang" onclick="hapusUser(${u.id})" ${u.peran==='Kepala Pusat Industri Hijau'&&cnt('Kepala Pusat Industri Hijau')===1?'disabled title="Minimal satu pemegang mandat aktif"':''}>Hapus</button></td></tr>`).join('');
+  const permRows = PERM.map(x=>`<tr><td>${x.aksi}</td>${x.r.map(v=>`<td style="text-align:center" class="${v?'y':'n'}">${v?'✓':'—'}</td>`).join('')}</tr>`).join('');
+  $('#view').innerHTML = `
+   <div class="role-cards">${cards}</div>
+   <div class="card" style="margin-bottom:16px"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div style="flex:1"><h3 class="sec">Akun Pengguna PIH</h3><p class="hint" style="margin:0">Kelola akun dan penetapan peran. Perubahan tercatat pada log audit.</p></div><button class="btn pri" onclick="tambahUser()">+ Tambah Pengguna</button></div>
+   <div style="overflow-x:auto"><table class="list"><thead><tr><th>Nama</th><th>Email Dinas</th><th>Peran</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>
+   <div class="card"><div class="pad" style="border-bottom:1px solid var(--line)"><h3 class="sec">Matriks Hak Akses per Peran</h3><p class="hint" style="margin:0">Turunan dari kuasa khusus pada halaman Kewenangan Tanda Tangan.</p></div>
+   <div style="overflow-x:auto"><table class="list perm-tb"><thead><tr><th>Aksi</th><th style="text-align:center">Kepala Pusat Industri Hijau</th><th style="text-align:center">Pejabat Teknis</th><th style="text-align:center">Operator Data</th><th style="text-align:center">Administrator</th></tr></thead><tbody>${permRows}</tbody></table></div></div>`;
+}
+function tambahUser(){ const nama=prompt('Nama lengkap pengguna baru:'); if(!nama)return; const email=prompt('Email dinas:','nama@kemenperin.go.id')||'-';
+  USERS.push({id:Date.now(),nama,nip:'—',peran:'Operator Data',email}); toast('Pengguna "'+nama+'" ditambahkan sebagai Operator Data.'); render(); }
+function hapusUser(id){ const u=USERS.find(x=>x.id===id); if(!u)return; if(confirm('Hapus akun '+u.nama+'?')){ USERS=USERS.filter(x=>x.id!==id); toast('Akun '+u.nama+' dihapus.'); render(); } }
+function ubahPeran(id,peran){ const u=USERS.find(x=>x.id===id); if(u){u.peran=peran; toast('Peran '+u.nama+' menjadi '+peran+'.'); render();} }
+/* ---------- MODAL PROYEK ---------- */
+let M_TAB='umum', M_KODE=null;
+function openProject(kode, tab){ M_KODE=kode; M_TAB=tab||'umum'; drawModal(); $('#overlay').classList.add('open'); if(window.event&&window.event.stopPropagation)window.event.stopPropagation(); }
+function closeModal(){ $('#overlay').classList.remove('open'); if(_map){ try{_map.remove();}catch(e){} _map=null; } }
+$('#overlay').addEventListener('click',e=>{ if(e.target.id==='overlay') closeModal(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+function drawModal(){
+  const p = PROJECTS.find(x=>x.kode===M_KODE); if(!p) return;
+  let body='';
+  if(M_TAB==='umum'){
+    const mini = STAGES.map(s=>{ const done = p.selesai || s.n<p.tahap; const cur=!p.selesai&&s.n===p.tahap; const lock=p.jalur==='NON'&&s.n>12;
+      return `<div class="ms ${done?'done':''} ${cur?'cur':''} ${s.kep?'kepm':''} ${lock?'lock':''}" title="Tahap ${s.n}: ${s.nama}">${s.n}</div>`;}).join('');
+    const PM = PROG_META[p.prog];
+    const props = p.proponen.map((x,ix)=>{ const parts=x.split(' — ');
+      return ix===0 ? `<div class="prop-1">${parts[0]}</div><div class="prop-role">${parts[1]||''}</div>`
+                    : `<div class="prop-item"><span class="dotp"></span><span>${parts[0]}${parts[1]?' <span style="font-weight:500;color:var(--ink-3)">— '+parts[1]+'</span>':''}</span></div>`;});
+    const sdgHTML = p.sdg.map(n=>`<div class="sdg" style="background:${SDG_META[n][1]}"><span class="num">${n}</span><span>${SDG_META[n][0]}</span></div>`).join('');
+    body = `
+     <div class="mini-step">${mini}</div>
+     <div class="step-note">${p.selesai?'Seluruh 16 tahapan selesai — corresponding adjustment tercatat di SRUK.':(p.status==='ditolak'?'Permohonan ditolak — lihat Riwayat & Arsip.':'Posisi saat ini: <b>Tahap '+p.tahap+' — '+stageOf(p).nama+'</b> (aktor: '+stageOf(p).aktor+'). Garis emas menandai titik keputusan menteri terkait; tahap redup tidak berlaku untuk jalur Non-Otorisasi.')}</div>
+     
+     <div class="ihead">
+       <div class="prop-wrap">
+         <div class="prop-lb">Pemrakarsa Proyek (Proponent)</div>
+         ${props.join('')}
+       </div>
+       <a class="progbadge" href="${PM.link}" target="_blank" rel="noopener">
+         <span class="mk" style="background:linear-gradient(135deg,${PM.c1},${PM.c2})">${PM.mono}</span>
+         <span><span class="pn">${PM.pendek}</span><div class="pd">Crediting programme<br>${p.prog==='CDM'?'transisi CDM → Pasal 6.4':'skema kredit karbon'}</div></span>
+       </a>
+     </div>
+     <div class="sect">Deskripsi Proyek</div>
+     <div class="desk">${p.desk}</div>
+     <div class="addl"><b>Additionality &amp; skenario baseline.</b> ${p.addl}</div>
+     <div class="sect">Kontribusi terhadap Tujuan Pembangunan Berkelanjutan (SDGs)</div>
+     <div class="sdgs">${sdgHTML}</div>
+     <div class="sect">Lokasi &amp; Batas Poligon Fasilitas</div>
+     <div class="maplot"><div id="lmap"></div>
+       <div class="map-cap"><span>${p.lok}</span><span class="mono">${p.lat.toFixed(4)}°, ${p.lng.toFixed(4)}° · poligon dari ${p.kode}.geojson</span></div>
+     </div>
+     <div class="sect">Data Administratif &amp; Teknis</div>
+     <div class="dl">
+      <div class="dt">NIB</div><div class="mono">${p.nib}</div>
+      <div class="dt">Klasifikasi Usaha (KBLI)</div><div>${p.isic.slice(1)} — ${KBLI[p.isic]||'—'}</div>
+      <div class="dt">Status Peserta Instalasi Diatur</div><div>${['C2394','C2012','C2011','C2410','C2420','C1920'].includes(p.isic)?'<span class="tag green">Terdaftar — instalasi diatur (PTBAE-PU)</span>':'<span class="tag gray">Bukan instalasi diatur</span>'}</div>
+      <div class="dt">LVV yang Menangani</div><div>${p.lvv||'<span style="color:var(--ink-3)">Belum ditetapkan</span>'}</div>
+      <div class="dt">Kewenangan Kemenperin</div><div>${isKemenperin(p)?'<span class="tag ippu">Ya — subsektor IPPU (keputusan oleh PIH)</span>':'<span class="tag gray">Pemantauan — menteri terkait: '+mTerkait(p)+'</span>'}</div>
+      <div class="dt">Jalur</div><div>${p.jalur==='OTO'?'Otorisasi (16 tahapan — perdagangan internasional)':'Non-Otorisasi (12 tahapan)'}</div>
+      <div class="dt">Metodologi</div><div><a class="metlink" href="${metLink(p)}" target="_blank" rel="noopener">${p.met} ↗</a> <span style="font-size:11.5px;color:var(--ink-3)">— dokumen metodologi ${PM.pendek}</span></div>
+      <div class="dt">Crediting Programme</div><div>${PM.nama}</div>
+      <div class="dt">Tipe Aksi Mitigasi</div><div>${p.tipe}</div>
+      <div class="dt">Potensi Pengurangan Emisi</div><div class="num">${fmt(p.emisi)} tCO₂e/tahun</div>
+      <div class="dt">Periode Penaatan</div><div>${p.mulai}–${p.akhir} (${p.dur} tahun)</div>
+      <div class="dt">Lokasi</div><div>${p.lok}<div style="font-size:11.5px;color:var(--ink-3);margin-top:2px">Kabupaten/Kota rujukan: ${p.kota}</div></div>
+     </div>`;
+  }
+  if(M_TAB==='berkas'){
+    body = berkas(p).map(b=>`<div class="file-row ${b.ada?'ada':'blm'}"><div class="f-ic">${b.ada?'📄':'⬚'}</div><div><div class="f-name">${b.nama}</div><div class="f-file">${b.ada?b.file+' · diunggah pelaku industri via SRUK':'Belum diunggah'}</div></div><div class="f-st">${b.ada?'<span class="tag green">Tersedia</span>':'<span class="tag gray">Belum ada</span>'}</div></div>`).join('') + `<div class="notice-int">Berkas bersumber dari input pelaku industri pada SRUK dan tersinkron ke SIINAS (prototipe: status diturunkan dari tahapan berjalan).</div>`;
+  }
+  if(M_TAB==='riwayat'){
+    body = `<div class="tl">${riwayat(p).map(e=>`<div class="ev ${e.now?'now':''}"><div class="e-t">${e.t}</div><div class="e-n">${e.n}</div><div class="e-d">${e.d}</div></div>`).join('')}</div>`;
+  }
+  $('#modal').innerHTML = `
+   <div class="m-head"><div><div class="m-title">${p.nama}</div><div class="m-sub"><span class="mono">${p.kode}</span> · ${p.perus} · <span class="tag ${sektorCls(p.sektor)}">${p.sektor}</span> ${p.jalur==='OTO'?'<span class="tag oto">Otorisasi</span>':''} ${posisiLabel(p)}</div></div><button class="x" onclick="closeModal()">✕</button></div>
+   <div class="subtabs">
+     <button class="${M_TAB==='umum'?'on':''}" onclick="M_TAB='umum';drawModal()">Informasi Umum</button>
+     <button class="${M_TAB==='berkas'?'on':''}" onclick="M_TAB='berkas';drawModal()">Berkas</button>
+     <button class="${M_TAB==='riwayat'?'on':''}" onclick="M_TAB='riwayat';drawModal()">Riwayat</button>
+   </div>
+   <div class="m-body">${body}</div>`;
+  if(M_TAB==='umum') initMap(p);
+}
+/* ---------- peta lokasi (Leaflet + fallback skematik bila offline) ---------- */
+let _map=null;
+function initMap(p){
+  const el = document.getElementById('lmap'); if(!el) return;
+  if(_map){ try{_map.remove();}catch(e){} _map=null; }
+  if(window.L && L.map){
+    try{
+      _map = L.map(el,{scrollWheelZoom:false, attributionControl:true}).setView([p.lat,p.lng],13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(_map);
+      const poly = L.polygon(p.poly,{color:'#12382e',weight:2,fillColor:'#2E7D57',fillOpacity:.30}).addTo(_map);
+      poly.bindTooltip('<b>'+p.kode+'</b><br>Batas poligon fasilitas',{sticky:true});
+      L.circleMarker([p.lat,p.lng],{radius:5,color:'#a16207',fillColor:'#a16207',fillOpacity:1}).addTo(_map)
+        .bindPopup('<b>'+p.perus+'</b><br>'+p.lok);
+      const fit = ()=>{ try{ _map.invalidateSize(); _map.fitBounds(poly.getBounds().pad(0.35), {maxZoom:15}); }catch(e){} };
+      setTimeout(fit,150); setTimeout(fit,450);
+      return;
+    }catch(e){ /* jatuh ke fallback */ }
+  }
+  el.innerHTML = fallbackMap(p);
+}
+function fallbackMap(p){
+  const la=p.poly.map(c=>c[0]), lo=p.poly.map(c=>c[1]);
+  const y0=Math.min(...la), y1=Math.max(...la), x0=Math.min(...lo), x1=Math.max(...lo);
+  const px=v=>((v-x0)/((x1-x0)||1))*160+70, py=v=>200-((v-y0)/((y1-y0)||1))*130-35;
+  const pts=p.poly.map(c=>px(c[1]).toFixed(1)+','+py(c[0]).toFixed(1)).join(' ');
+  return `<svg viewBox="0 0 300 200" style="width:100%;height:100%;background:#eef3ef">
+   <defs><pattern id="gr" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#dbe4dd" stroke-width="1"/></pattern></defs>
+   <rect width="300" height="200" fill="url(#gr)"/>
+   <polygon points="${pts}" fill="#2E7D57" fill-opacity=".3" stroke="#12382e" stroke-width="1.6"/>
+   <circle cx="${px(p.lng).toFixed(1)}" cy="${py(p.lat).toFixed(1)}" r="4" fill="#a16207"/>
+   <text x="14" y="24" font-size="11" font-weight="700" fill="#12382e">${p.kode} — batas poligon fasilitas</text>
+   <text x="14" y="40" font-size="9.5" fill="#51605a">${p.kota} · ${p.lat.toFixed(4)}°, ${p.lng.toFixed(4)}°</text>
+   <text x="14" y="188" font-size="9" fill="#7c8a84">Peta dasar tidak tersedia (luring) — tampilan skematik dari berkas geospasial.</text>
+  </svg>`;
+}
+/* ---------- router ---------- */
+function render(){
+  $('#nav-kep-badge').textContent = antreanKemenperin().length;
+  ({ringkasan:renderRingkasan,progress:renderProgress,keputusan:renderKeputusan,arsip:renderArsip,mandat:renderMandat,pengguna:renderPengguna})[PAGE]();
+}
+render();
+</script>
+</body>
+</html>
